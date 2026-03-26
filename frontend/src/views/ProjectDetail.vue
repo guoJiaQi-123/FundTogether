@@ -68,7 +68,7 @@
                     </span>
                     <span class="reward-limit" v-else>不限量</span>
                   </div>
-                  <h3 class="reward-title">{{ reward.title }}</h3>
+                  <h3 class="reward-title">支持 ￥{{ reward.amount }}</h3>
                   <p class="reward-content">{{ reward.content }}</p>
                   <div class="reward-footer">
                     <span class="reward-time">预计回报时间: {{ reward.returnTime }} 天后</span>

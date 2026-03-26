@@ -15,17 +15,18 @@ public class ProjectReward {
     
     private Long projectId;
     
-    private String title;
-    
-    private String description;
-    
     private BigDecimal amount;
     
-    private Integer maxLimit;
+    private String content;
     
+    @TableField("reward_count")
+    private Integer limitCount;
+    
+    @TableField(exist = false)
     private Integer currentCount;
     
-    private String deliveryDate;
+    @TableField("delivery_time")
+    private Integer returnTime;
     
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
