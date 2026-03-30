@@ -23,6 +23,9 @@
           <el-menu-item index="/admin/notices">
             <span>系统通知</span>
           </el-menu-item>
+          <el-menu-item index="/admin/funding">
+            <span>资金管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
       <el-main class="admin-main">

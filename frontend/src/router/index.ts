@@ -60,6 +60,11 @@ const routes: Array<RouteRecordRaw> = [
             path: 'notices',
             name: 'AdminNotices',
             component: () => import('../views/admin/NoticeManage.vue')
+          },
+          {
+            path: 'funding',
+            name: 'AdminFunding',
+            component: () => import('../views/admin/FundingManage.vue')
           }
         ]
       },

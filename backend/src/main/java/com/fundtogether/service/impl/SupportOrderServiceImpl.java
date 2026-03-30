@@ -27,20 +27,27 @@ import java.util.Map;
 import java.util.HashMap;
 import java.math.BigDecimal;
 
+import com.fundtogether.entity.FundingLedger;
+import com.fundtogether.service.FundingLedgerService;
+
 @Service
-public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, SupportOrder> implements SupportOrderService {
+public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, SupportOrder>
+        implements SupportOrderService {
 
     @Autowired
     private ProjectService projectService;
-    
+
     @Autowired
     private SysUserService sysUserService;
+
+    @Autowired
+    private FundingLedgerService fundingLedgerService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void createOrder(SupportOrderCreateDTO dto, Long userId) {
         Project project = projectService.getProjectDetail(dto.getProjectId());
-        
+
         SupportOrder order = new SupportOrder();
         order.setOrderNo(UUID.randomUUID().toString().replace("-", ""));
         order.setUserId(userId);
@@ -51,9 +58,20 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
         // Simulate immediate payment success
         order.setStatus(1); // 1-已支付
         order.setPayTime(java.time.LocalDateTime.now());
-        
+
         this.save(order);
-        
+
+        // Record payment in funding_ledger
+        FundingLedger ledger = new FundingLedger();
+        ledger.setProjectId(project.getId());
+        ledger.setOrderId(order.getId());
+        ledger.setUserId(userId);
+        ledger.setAmount(order.getAmount());
+        ledger.setType(1); // 1-用户支付
+        ledger.setStatus(1); // 1-成功
+        ledger.setRemark("支持项目支付，订单号：" + order.getOrderNo());
+        fundingLedgerService.save(ledger);
+
         // Update project stats
         project.setCurrentAmount(project.getCurrentAmount().add(dto.getAmount()));
         project.setSupporterCount(project.getSupporterCount() + 1);
@@ -66,7 +84,7 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
         LambdaQueryWrapper<SupportOrder> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SupportOrder::getUserId, userId);
         wrapper.orderByDesc(SupportOrder::getCreatedAt);
-        
+
         return this.page(page, wrapper);
     }
 
@@ -79,14 +97,14 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
         if (!project.getSponsorId().equals(sponsorId)) {
             throw new RuntimeException("无权查看他人项目的支持者");
         }
-        
+
         Page<SupportOrder> page = new Page<>(current, size);
         LambdaQueryWrapper<SupportOrder> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SupportOrder::getProjectId, projectId);
         wrapper.eq(SupportOrder::getStatus, 1); // 1-已支付
         wrapper.orderByDesc(SupportOrder::getCreatedAt);
         IPage<SupportOrder> orderPage = this.page(page, wrapper);
-        
+
         Page<SupporterVO> voPage = new Page<>(current, size, orderPage.getTotal());
         List<SupporterVO> voList = orderPage.getRecords().stream().map(order -> {
             SupporterVO vo = new SupporterVO();
@@ -98,7 +116,7 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
             }
             return vo;
         }).collect(Collectors.toList());
-        
+
         voPage.setRecords(voList);
         return voPage;
     }
@@ -108,20 +126,20 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
         LambdaQueryWrapper<SupportOrder> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SupportOrder::getUserId, userId);
         wrapper.eq(SupportOrder::getStatus, 1); // 1-已支付
-        
+
         List<SupportOrder> orders = this.list(wrapper);
-        
+
         BigDecimal totalAmount = BigDecimal.ZERO;
         long projectCount = orders.stream().map(SupportOrder::getProjectId).distinct().count();
-        
+
         for (SupportOrder order : orders) {
             totalAmount = totalAmount.add(order.getAmount());
         }
-        
+
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalAmount", totalAmount);
         stats.put("projectCount", projectCount);
-        
+
         return stats;
     }
 }

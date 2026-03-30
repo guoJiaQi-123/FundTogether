@@ -59,6 +59,7 @@
                       <el-dropdown-item :command="() => openCommentsDialog(row.id)">留言管理</el-dropdown-item>
                       <el-dropdown-item :command="() => openDashboard(row)">数据看板</el-dropdown-item>
                       <el-dropdown-item :command="() => openUpdatesDialog(row.id)">发布动态</el-dropdown-item>
+                      <el-dropdown-item :command="() => openPayoutsDialog(row.id)">资金拨付</el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
@@ -218,6 +219,35 @@
         <el-button type="primary" @click="submitUpdate" :loading="submittingUpdate">发布</el-button>
       </template>
     </el-dialog>
+
+    <!-- Payouts Dialog -->
+    <el-dialog v-model="payoutsDialogVisible" title="资金拨付详情" width="800px">
+      <el-table :data="payouts" style="width: 100%" v-loading="payoutsLoading">
+        <el-table-column label="拨付阶段" width="120">
+          <template #default="scope">
+            第 {{ scope.row.stage }} 期
+          </template>
+        </el-table-column>
+        <el-table-column prop="conditionDesc" label="拨付条件" />
+        <el-table-column label="拨付金额" width="120">
+          <template #default="scope">
+            ¥ {{ scope.row.amount }}
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="scope">
+            <el-tag :type="scope.row.status === 1 ? 'success' : 'warning'">
+              {{ scope.row.status === 1 ? '已拨付' : '待拨付' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="拨付时间" width="180">
+          <template #default="scope">
+            {{ scope.row.payoutTime ? new Date(scope.row.payoutTime).toLocaleString() : '-' }}
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
@@ -354,6 +384,26 @@ const openUpdatesDialog = (projectId: number) => {
   updateForm.title = ''
   updateForm.content = ''
   updatesDialogVisible.value = true
+}
+
+// Payouts
+const payoutsDialogVisible = ref(false)
+const payouts = ref<any[]>([])
+const payoutsLoading = ref(false)
+
+const openPayoutsDialog = async (projectId: number) => {
+  payoutsDialogVisible.value = true
+  payoutsLoading.value = true
+  try {
+    const res = await request.get('/api/funding/payouts', {
+      params: { projectId, current: 1, size: 100 }
+    })
+    payouts.value = res.data.data.records
+  } catch (error) {
+    ElMessage.error('获取拨付详情失败')
+  } finally {
+    payoutsLoading.value = false
+  }
 }
 
 const submitUpdate = async () => {

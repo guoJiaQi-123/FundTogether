@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/user/register", "/api/user/login", "/api/user/reset-password").permitAll()
                 .requestMatchers("/api/public/**", "/api/comment/project/**", "/api/projects/recommend", "/api/projects/*/rewards", "/api/notices/active").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/api/funding/process-payout/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/sponsor/**").hasAnyRole("SPONSOR", "ADMIN")
                 .anyRequest().authenticated()
