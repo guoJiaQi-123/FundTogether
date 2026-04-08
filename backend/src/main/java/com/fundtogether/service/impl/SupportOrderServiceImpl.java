@@ -48,13 +48,24 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
     public void createOrder(SupportOrderCreateDTO dto, Long userId) {
         Project project = projectService.getProjectDetail(dto.getProjectId());
 
+        SysUser user = sysUserService.getById(userId);
+        BigDecimal currentBalance = user.getBalance() != null ? user.getBalance() : BigDecimal.ZERO;
+
+        if (currentBalance.compareTo(dto.getAmount()) < 0) {
+            throw new RuntimeException("余额不足，请先充值");
+        }
+
+        // Deduct balance
+        user.setBalance(currentBalance.subtract(dto.getAmount()));
+        sysUserService.updateById(user);
+
         SupportOrder order = new SupportOrder();
         order.setOrderNo(UUID.randomUUID().toString().replace("-", ""));
         order.setUserId(userId);
         order.setProjectId(dto.getProjectId());
         order.setAmount(dto.getAmount());
         order.setMessage(dto.getMessage());
-        order.setPayChannel(dto.getPayChannel());
+        order.setPayChannel("3"); // 3-余额支付
         // Simulate immediate payment success
         order.setStatus(1); // 1-已支付
         order.setPayTime(java.time.LocalDateTime.now());

@@ -44,6 +44,8 @@ public class SysUser {
     
     private Integer gender;
     
+    private java.math.BigDecimal balance;
+    
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
     

@@ -149,7 +149,6 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Link, User } from '@element-plus/icons-vue'
 import { getPendingProjects, approveProject, rejectProject, takedownProject } from '../../api/admin'
-import { getProjectSupporters } from '../../api/project'
 import request from '../../utils/request'
 
 const router = useRouter()

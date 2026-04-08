@@ -212,9 +212,7 @@
         </el-form-item>
         <el-form-item label="支付方式">
           <el-radio-group v-model="supportForm.payChannel">
-            <el-radio value="1">微信支付</el-radio>
-            <el-radio value="2">支付宝</el-radio>
-            <el-radio value="3">银行卡</el-radio>
+            <el-radio value="3">余额支付</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -230,7 +228,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '../utils/request'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Star, ChatDotRound, Calendar } from '@element-plus/icons-vue'
 import { useUserStore } from '../store/user'
 import * as echarts from 'echarts'
@@ -249,7 +247,7 @@ const submitting = ref(false)
 const supportForm = ref({
   amount: 10,
   message: '',
-  payChannel: '1'
+  payChannel: '3'
 })
 
 // Rewards related
@@ -526,8 +524,18 @@ const submitSupport = async () => {
     ElMessage.success('支付成功，感谢您的支持！')
     showSupportDialog.value = false
     fetchProjectDetail() // Refresh data
-  } catch (error) {
-    console.error(error)
+  } catch (error: any) {
+    if (error.message && error.message.includes('余额不足')) {
+      ElMessageBox.confirm('余额不足，是否前往充值？', '提示', {
+        confirmButtonText: '去充值',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        router.push('/user/account')
+      }).catch(() => {})
+    } else {
+      console.error(error)
+    }
   } finally {
     submitting.value = false
   }

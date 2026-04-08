@@ -65,6 +65,11 @@ const routes: Array<RouteRecordRaw> = [
             path: 'funding',
             name: 'AdminFunding',
             component: () => import('../views/admin/FundingManage.vue')
+          },
+          {
+            path: 'user-levels',
+            name: 'AdminUserLevels',
+            component: () => import('../views/admin/UserLevelManage.vue')
           }
         ]
       },
@@ -72,6 +77,11 @@ const routes: Array<RouteRecordRaw> = [
         path: 'sponsor/projects',
         name: 'SponsorProjects',
         component: () => import('../views/SponsorProjects.vue')
+      },
+      {
+        path: 'user/account',
+        name: 'UserAccount',
+        component: () => import('../views/UserAccount.vue')
       },
       {
         path: 'user/orders',

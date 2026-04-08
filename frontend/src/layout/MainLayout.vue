@@ -33,6 +33,11 @@
               @click="router.push('/sponsor/projects')"
             >我的项目</el-button>
             <el-button 
+              :type="route.path.startsWith('/user/account') ? 'primary' : 'text'" 
+              class="nav-btn" 
+              @click="router.push('/user/account')"
+            >我的账户</el-button>
+            <el-button 
               :type="route.path.startsWith('/user/orders') ? 'primary' : 'text'" 
               class="nav-btn" 
               @click="router.push('/user/orders')"

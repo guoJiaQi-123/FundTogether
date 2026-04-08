@@ -12,5 +12,8 @@ public interface SupportOrderMapper extends BaseMapper<SupportOrder> {
 
     @Select("SELECT IFNULL(SUM(amount), 0) FROM support_order WHERE status = 1 AND deleted = 0")
     BigDecimal getTotalAmount();
+
+    @Select("SELECT IFNULL(SUM(amount), 0) FROM support_order WHERE user_id = #{userId} AND status = 1 AND deleted = 0")
+    BigDecimal getUserTotalSupportAmount(Long userId);
 }
 

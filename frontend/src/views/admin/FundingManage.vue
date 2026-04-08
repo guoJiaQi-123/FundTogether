@@ -1,6 +1,8 @@
 <template>
   <div class="funding-manage">
-    <h2>资金与拨付管理</h2>
+    <div class="page-header">
+      <h2>平台财务</h2>
+    </div>
     
     <el-tabs v-model="activeTab">
       <!-- 阶段拨付管理 -->

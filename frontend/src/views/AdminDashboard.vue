@@ -24,7 +24,10 @@
             <span>系统通知</span>
           </el-menu-item>
           <el-menu-item index="/admin/funding">
-            <span>资金管理</span>
+            <span>平台财务</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/user-levels">
+            <span>用户等级</span>
           </el-menu-item>
         </el-menu>
       </el-aside>

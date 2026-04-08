@@ -20,7 +20,12 @@
                 <span>更换头像</span>
               </div>
             </el-upload>
-            <h2 class="user-nickname">{{ profileForm.nickname || '未设置昵称' }}</h2>
+            <h2 class="user-nickname">
+              {{ profileForm.nickname || '未设置昵称' }}
+              <el-tag v-if="userLevel" :color="userLevel.icon" effect="dark" size="small" class="level-tag" style="border: none; margin-left: 8px;">
+                {{ userLevel.levelName }}
+              </el-tag>
+            </h2>
             <p class="user-bio">{{ profileForm.bio || '这个人很懒，什么都没留下...' }}</p>
             
             <div class="user-tags">
@@ -255,7 +260,6 @@
       <el-form :model="paymentForm" label-position="top">
         <el-form-item label="支付平台" required>
           <el-radio-group v-model="paymentForm.type" size="large" style="width: 100%; display: flex;">
-            <el-radio-button :label="1" style="flex: 1; text-align: center;">微信</el-radio-button>
             <el-radio-button :label="2" style="flex: 1; text-align: center;">支付宝</el-radio-button>
             <el-radio-button :label="3" style="flex: 1; text-align: center;">银行卡</el-radio-button>
           </el-radio-group>
@@ -298,6 +302,7 @@ const activeTab = ref('profile')
 const updating = ref(false)
 const userStore = useUserStore()
 const router = useRouter()
+const userLevel = ref<any>(null)
 
 const tabTitles: Record<string, string> = {
   profile: '基础资料',
@@ -333,7 +338,7 @@ const passwordForm = ref({
 const paymentMethods = ref<any[]>([])
 const showPaymentDialog = ref(false)
 const paymentForm = ref({
-  type: 1,
+  type: 2,
   account: '',
   name: '',
   bankName: ''
@@ -457,8 +462,20 @@ const formatAccount = (account: string) => {
   return account
 }
 
+const loadUserLevel = async () => {
+  try {
+    const res: any = await request.get('/user-level/current')
+    if (res.code === 200 && res.data) {
+      userLevel.value = res.data
+    }
+  } catch (error) {
+    console.error('获取用户等级失败:', error)
+  }
+}
+
 onMounted(() => {
   loadUserInfo()
+  loadUserLevel()
   fetchPaymentMethods()
   fetchAuthInfo()
 })
@@ -511,7 +528,7 @@ const handleBindPaymentMethod = async () => {
     await bindPaymentMethod(paymentForm.value)
     ElMessage.success('支付账号绑定成功')
     showPaymentDialog.value = false
-    paymentForm.value = { type: 1, account: '', name: '', bankName: '' }
+    paymentForm.value = { type: 2, account: '', name: '', bankName: '' }
     fetchPaymentMethods()
   } catch (error: any) {
     ElMessage.error(error.message || '绑定失败')

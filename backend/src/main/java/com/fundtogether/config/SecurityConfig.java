@@ -33,7 +33,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/user/register", "/api/user/login", "/api/user/reset-password").permitAll()
+                .requestMatchers("/api/user/register", "/api/user/login", "/api/user/reset-password", "/api/user/account/alipay/notify", "/api/user/account/alipay/return").permitAll()
                 .requestMatchers("/api/public/**", "/api/comment/project/**", "/api/projects/recommend", "/api/projects/*/rewards", "/api/notices/active").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/api/funding/process-payout/**").hasRole("ADMIN")

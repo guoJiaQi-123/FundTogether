@@ -49,7 +49,11 @@
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="payChannel" label="支付渠道" width="120" />
+              <el-table-column prop="payChannel" label="支付渠道" width="120">
+                <template #default="{ row }">
+                  {{ row.payChannel === '3' ? '余额支付' : (row.payChannel === '2' ? '支付宝' : (row.payChannel === '1' ? '微信支付' : row.payChannel)) }}
+                </template>
+              </el-table-column>
               <el-table-column prop="createdAt" label="支持时间" width="180" />
               <el-table-column label="操作" width="100" fixed="right">
                 <template #default="{ row }">
