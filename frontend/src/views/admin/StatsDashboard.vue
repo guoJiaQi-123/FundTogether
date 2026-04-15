@@ -69,14 +69,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import * as echarts from 'echarts'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { init, use, graphic } from 'echarts/core'
+import { PieChart, BarChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import type { ECharts } from 'echarts/core'
 import request from '../../utils/request'
 import { ElMessage } from 'element-plus'
 import { Download, User, FolderOpened, Money, Trophy } from '@element-plus/icons-vue'
 
+use([PieChart, BarChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent, CanvasRenderer])
+
 const pieChartRef = ref<HTMLElement | null>(null)
 const barChartRef = ref<HTMLElement | null>(null)
+const chartInstances: ECharts[] = []
 
 const stats = ref({
   totalUsers: 0,
@@ -99,6 +106,10 @@ const exportData = () => {
   link.click()
   document.body.removeChild(link)
   ElMessage.success('数据导出成功')
+}
+
+const handleResize = () => {
+  chartInstances.forEach(chart => chart.resize())
 }
 
 onMounted(async () => {
@@ -126,10 +137,8 @@ onMounted(async () => {
 })
 
 const initCharts = () => {
-  const chartInstances: echarts.ECharts[] = []
-
   if (pieChartRef.value) {
-    const pieChart = echarts.init(pieChartRef.value)
+    const pieChart = init(pieChartRef.value)
     
     const pieData = categoryStats.value.map(item => ({
       name: item.categoryName,
@@ -161,7 +170,7 @@ const initCharts = () => {
   }
 
   if (barChartRef.value) {
-    const barChart = echarts.init(barChartRef.value)
+    const barChart = init(barChartRef.value)
     
     // Generate last 6 months labels if no data exists
     const xData = []
@@ -209,7 +218,7 @@ const initCharts = () => {
           name: '金额 (元)',
           barWidth: '40%',
           itemStyle: { 
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            color: new graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: '#818CF8' },
               { offset: 1, color: '#4F46E5' }
             ]),
@@ -221,10 +230,14 @@ const initCharts = () => {
     chartInstances.push(barChart)
   }
 
-  window.addEventListener('resize', () => {
-    chartInstances.forEach(chart => chart.resize())
-  })
+  window.addEventListener('resize', handleResize)
 }
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  chartInstances.forEach(chart => chart.dispose())
+  chartInstances.length = 0
+})
 </script>
 
 <style scoped>

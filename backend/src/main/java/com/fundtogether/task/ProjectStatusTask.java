@@ -9,6 +9,8 @@ import com.fundtogether.service.ProjectService;
 import com.fundtogether.service.ProjectPayoutService;
 import com.fundtogether.service.SupportOrderService;
 import com.fundtogether.service.FundingLedgerService;
+import com.fundtogether.service.SysUserService;
+import com.fundtogether.entity.SysUser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,6 +36,9 @@ public class ProjectStatusTask {
     
     @Autowired
     private ProjectPayoutService projectPayoutService;
+
+    @Autowired
+    private SysUserService sysUserService;
 
     // Run every minute
     @Scheduled(cron = "0 * * * * ?")
@@ -134,8 +139,17 @@ public class ProjectStatusTask {
             ledger.setAmount(order.getAmount());
             ledger.setType(2); // 2-平台退款
             ledger.setStatus(1); // 1-成功
-            ledger.setRemark("项目筹款失败自动退款，原订单号：" + order.getOrderNo());
+            SysUser user = sysUserService.getById(order.getUserId());
+            String nickname = user != null ? user.getNickname() : "未知用户";
+            ledger.setRemark(String.format("业务场景: 项目筹款失败自动退款, 资金流向: 平台 -> 用户[%s] -> 原项目[%s]", nickname, project.getTitle()));
             fundingLedgerService.save(ledger);
+
+            // Update user balance
+            if (user != null) {
+                BigDecimal currentBalance = user.getBalance() != null ? user.getBalance() : BigDecimal.ZERO;
+                user.setBalance(currentBalance.add(order.getAmount()));
+                sysUserService.updateById(user);
+            }
         }
     }
 }

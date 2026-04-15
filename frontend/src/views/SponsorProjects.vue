@@ -6,8 +6,41 @@
         <el-button type="primary" @click="openCreateDialog">创建项目</el-button>
       </div>
       
+      <div class="overview-section">
+        <div class="overview-copy">
+          <h3>项目运营概览</h3>
+          <p>优先处理待审核项目，及时跟进筹款中项目的发货、动态与支持者反馈。</p>
+        </div>
+
+        <div v-if="loading && projects.length === 0" class="overview-skeleton">
+          <el-skeleton v-for="item in 4" :key="item" animated>
+            <template #template>
+              <el-skeleton-item variant="rect" class="overview-skeleton-item" />
+            </template>
+          </el-skeleton>
+        </div>
+
+        <div v-else class="overview-grid">
+          <div
+            v-for="card in summaryCards"
+            :key="card.label"
+            class="overview-card"
+            :class="card.tone"
+          >
+            <span class="overview-label">{{ card.label }}</span>
+            <strong class="overview-value">{{ card.value }}</strong>
+            <span class="overview-tip">{{ card.tip }}</span>
+          </div>
+        </div>
+      </div>
+
       <el-card>
         <el-table :data="projects" style="width: 100%" v-loading="loading">
+          <template #empty>
+            <el-empty description="暂无项目，创建后可在这里持续跟进审核、支持者和发货进度。">
+              <el-button type="primary" @click="openCreateDialog">立即创建项目</el-button>
+            </el-empty>
+          </template>
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column label="封面" width="120">
             <template #default="{ row }">
@@ -30,7 +63,11 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="createdAt" label="创建时间" width="180" />
+          <el-table-column prop="createdAt" label="创建时间" width="180">
+            <template #default="{ row }">
+              {{ formatDateTime(row.createdAt) }}
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="300" fixed="right">
             <template #default="{ row }">
               <el-button 
@@ -48,6 +85,14 @@
                 @click="handleCancel(row.id)"
               >
                 取消
+              </el-button>
+              <el-button 
+                v-if="row.status === 5" 
+                type="success" 
+                size="small" 
+                @click="openDeliveryDialog(row)"
+              >
+                发货管理
               </el-button>
               <template v-if="row.status !== 0 && row.status !== 3">
                 <el-button 
@@ -94,6 +139,9 @@
         <el-button type="success" @click="exportSupporters" :loading="exporting">导出为 Excel</el-button>
       </div>
       <el-table :data="supporters" style="width: 100%" v-loading="loadingSupporters">
+        <template #empty>
+          <el-empty description="当前项目还没有支持记录，继续完善项目内容以提升转化。" />
+        </template>
         <el-table-column label="头像" width="80">
           <template #default="{ row }">
             <el-avatar :size="40" :src="row.avatar" />
@@ -255,11 +303,52 @@
         </el-table-column>
       </el-table>
     </el-dialog>
+    <!-- 发货管理弹窗 -->
+    <el-dialog v-model="showDeliveryDialog" :title="`发货管理 - ${currentProject?.title}`" width="800px">
+      <el-table :data="supporters" style="width: 100%" v-loading="loadingSupporters">
+        <template #empty>
+          <el-empty description="暂无可发货的支持订单，后续支持成功后会自动出现在这里。" />
+        </template>
+        <el-table-column prop="nickname" label="支持者" width="120" />
+        <el-table-column prop="amount" label="支持金额" width="100" />
+        <el-table-column prop="message" label="留言" show-overflow-tooltip />
+        <el-table-column prop="payTime" label="支付时间" width="160">
+          <template #default="{ row }">
+            {{ formatDateTime(row.payTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="deliveryStatus" label="发货状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.deliveryStatus === 1 ? 'success' : 'warning'">
+              {{ row.deliveryStatus === 1 ? '已发货' : '待发货' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-button v-if="row.deliveryStatus === 0" type="primary" size="small" @click="handleDelivery(row)">
+              发货
+            </el-button>
+            <span v-else style="font-size: 12px; color: #67c23a;">单号: {{ row.expressNo }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="pagination">
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total="supportersTotal"
+          :page-size="supportersPageSize"
+          v-model:current-page="supportersCurrentPage"
+          @current-change="fetchSupporters"
+        />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { computed, ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowDown, Link } from '@element-plus/icons-vue'
 import request from '../utils/request'
@@ -274,15 +363,52 @@ const handleCommand = (cmd: Function) => {
 }
 import type { FormInstance, FormRules } from 'element-plus'
 
-import { cancelProject, getProjectSupporters } from '../api/project'
-
-
-
 const projects = ref<any[]>([])
 const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+const formatDateTime = (value?: string) => {
+  if (!value) return '-'
+  return new Date(value).toLocaleString()
+}
+
+const summaryCards = computed(() => {
+  const pendingCount = projects.value.filter(item => item.status === 0).length
+  const fundraisingCount = projects.value.filter(item => item.status === 1).length
+  const successCount = projects.value.filter(item => item.status === 5).length
+
+  return [
+    {
+      label: '全部项目',
+      value: total.value,
+      tip: '累计创建项目总数',
+      tone: 'primary'
+    },
+    {
+      label: '当前页筹款中',
+      value: fundraisingCount,
+      tip: '可继续优化内容与动态',
+      tone: 'success'
+    },
+    {
+      label: '当前页待审核',
+      value: pendingCount,
+      tip: '建议尽快检查资料完整性',
+      tone: 'warning'
+    },
+    {
+      label: '当前页筹款成功',
+      value: successCount,
+      tip: '优先处理发货与回访',
+      tone: 'info'
+    }
+  ]
+})
+
+const showDeliveryDialog = ref(false)
+const currentProject = ref<any>(null)
 
 const projectDialogVisible = ref(false)
 const isEdit = ref(false)
@@ -295,21 +421,28 @@ const supporters = ref<any[]>([])
 const loadingSupporters = ref(false)
 
 const exporting = ref(false)
+const escapeCsvCell = (value: unknown) => {
+  const normalized = String(value ?? '').replace(/"/g, '""')
+  return `"${normalized}"`
+}
+
 const exportSupporters = () => {
   if (supporters.value.length === 0) {
     ElMessage.warning('暂无数据可导出')
     return
   }
   exporting.value = true
-  // Simple CSV export
   const headers = ['用户ID', '支持金额', '留言', '支持时间']
   const rows = supporters.value.map(s => [
     s.userId, 
     s.amount, 
     s.message || '', 
-    new Date(s.createTime).toLocaleString()
+    formatDateTime(s.createTime || s.payTime)
   ])
-  const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
+  const csvContent = [
+    headers.map(escapeCsvCell).join(','),
+    ...rows.map(row => row.map(escapeCsvCell).join(','))
+  ].join('\n')
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)
@@ -505,16 +638,18 @@ const openCreateDialog = () => {
   if (projectFormRef.value) projectFormRef.value.clearValidate()
 }
 
-const handleCancel = (id: number) => {
-  ElMessageBox.confirm('确定要取消该待审核项目吗？取消后不可恢复。', '警告', {
+const handleCancel = async (id: number) => {
+  ElMessageBox.confirm('确定要取消该项目吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
     try {
-      await cancelProject(id)
-      ElMessage.success('项目已取消')
+      await request.put(`/sponsor/project/cancel/${id}`)
+      ElMessage.success('取消成功')
       fetchProjects()
-    } catch (error: any) {
-      ElMessage.error(error.message || '取消失败')
+    } catch (error) {
+      console.error(error)
     }
   }).catch(() => {})
 }
@@ -526,21 +661,46 @@ const openSupportersDialog = (id: number) => {
   fetchSupporters()
 }
 
+const openDeliveryDialog = (row: any) => {
+  currentProject.value = row
+  currentSupportersProjectId.value = row.id
+  showDeliveryDialog.value = true
+  supportersCurrentPage.value = 1
+  fetchSupporters()
+}
+
 const fetchSupporters = async () => {
   if (!currentSupportersProjectId.value) return
   loadingSupporters.value = true
   try {
-    const res: any = await getProjectSupporters(currentSupportersProjectId.value, {
-      current: supportersCurrentPage.value,
-      size: supportersPageSize.value
+    const res: any = await request.get(`/sponsor/project/${currentSupportersProjectId.value}/supporters`, {
+      params: { current: supportersCurrentPage.value, size: supportersPageSize.value }
     })
     supporters.value = res.data.records
     supportersTotal.value = res.data.total
   } catch (error) {
     console.error(error)
+    ElMessage.error('获取支持者列表失败')
   } finally {
     loadingSupporters.value = false
   }
+}
+
+const handleDelivery = (row: any) => {
+  ElMessageBox.prompt('请输入发货的物流单号', '发货确认', {
+    confirmButtonText: '确认发货',
+    cancelButtonText: '取消',
+    inputPattern: /.+/,
+    inputErrorMessage: '物流单号不能为空'
+  }).then(async ({ value }) => {
+    try {
+      await request.post(`/order/delivery/${row.id}`, { expressNo: value })
+      ElMessage.success('发货成功')
+      fetchSupporters()
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.msg || '发货失败')
+    }
+  }).catch(() => {})
 }
 
 const openEditDialog = (row: any) => {
@@ -601,9 +761,131 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.overview-section {
+  margin-bottom: 20px;
+}
+
+.overview-copy {
+  margin-bottom: 14px;
+}
+
+.overview-copy h3 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: #303133;
+}
+
+.overview-copy p {
+  margin: 0;
+  color: #606266;
+  font-size: 14px;
+}
+
+.overview-grid,
+.overview-skeleton {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.overview-card {
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 10px 30px -20px rgba(15, 23, 42, 0.3);
+}
+
+.overview-card::after {
+  content: '';
+  position: absolute;
+  top: -18px;
+  right: -18px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.overview-card.primary {
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  color: #fff;
+}
+
+.overview-card.success {
+  background: linear-gradient(135deg, #67c23a 0%, #95d475 100%);
+  color: #fff;
+}
+
+.overview-card.warning {
+  background: linear-gradient(135deg, #e6a23c 0%, #f3d19e 100%);
+  color: #fff;
+}
+
+.overview-card.info {
+  background: linear-gradient(135deg, #7c7df0 0%, #a2a4ff 100%);
+  color: #fff;
+}
+
+.overview-label,
+.overview-tip,
+.overview-value {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.overview-label {
+  font-size: 14px;
+  opacity: 0.92;
+}
+
+.overview-value {
+  margin: 10px 0 6px;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.overview-tip {
+  font-size: 13px;
+  opacity: 0.88;
+}
+
+.overview-skeleton-item {
+  width: 100%;
+  height: 118px;
+  border-radius: 18px;
+}
+
 .pagination {
   display: flex;
   justify-content: center;
   margin-top: 20px;
+}
+
+@media (max-width: 992px) {
+  .overview-grid,
+  .overview-skeleton {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin: 20px 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .overview-grid,
+  .overview-skeleton {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

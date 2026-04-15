@@ -45,4 +45,26 @@ public class OrderController {
     public Result<?> getMyStats() {
         return Result.success(supportOrderService.getMyStats(getCurrentUserId()));
     }
+
+    @PostMapping("/delivery/{id}")
+    public Result<?> updateDeliveryStatus(@PathVariable Long id, @RequestBody java.util.Map<String, String> params) {
+        String expressNo = params.get("expressNo");
+        SupportOrder order = supportOrderService.getById(id);
+        if (order == null) {
+            return Result.error("订单不存在");
+        }
+        
+        // Ensure only project sponsor can update delivery
+        com.fundtogether.entity.Project project = supportOrderService.getProjectByOrderId(order.getId());
+        if (project == null || !project.getSponsorId().equals(getCurrentUserId())) {
+            return Result.error(403, "无权修改该订单发货状态");
+        }
+        
+        order.setDeliveryStatus(1);
+        order.setExpressNo(expressNo);
+        order.setDeliveryTime(java.time.LocalDateTime.now());
+        
+        supportOrderService.updateById(order);
+        return Result.success("发货状态更新成功");
+    }
 }

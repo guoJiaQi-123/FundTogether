@@ -13,4 +13,9 @@ public class SupporterVO {
     private BigDecimal amount;
     private String message;
     private LocalDateTime payTime;
+    
+    // 新增发货字段
+    private Integer deliveryStatus;
+    private LocalDateTime deliveryTime;
+    private String expressNo;
 }

@@ -24,13 +24,28 @@ public class SupportOrder {
     private String message;
     
     /**
-     * 0-待支付 1-已支付 2-已取消
+     * 0-待支付 1-已支付 2-已取消 3-已退款
      */
     private Integer status;
     
     private String payChannel;
     
     private LocalDateTime payTime;
+    
+    /**
+     * 发货状态：0-未发货，1-已发货
+     */
+    private Integer deliveryStatus;
+    
+    /**
+     * 发货时间
+     */
+    private LocalDateTime deliveryTime;
+    
+    /**
+     * 物流单号
+     */
+    private String expressNo;
     
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

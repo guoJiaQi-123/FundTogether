@@ -225,13 +225,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Star, ChatDotRound, Calendar } from '@element-plus/icons-vue'
 import { useUserStore } from '../store/user'
-import * as echarts from 'echarts'
+import { init, use, graphic } from 'echarts/core'
+import { LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import type { ECharts } from 'echarts/core'
+
+use([LineChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 const route = useRoute()
 const router = useRouter()
@@ -279,7 +285,8 @@ const handleRewardClick = (reward: any) => {
 
 // Chart related
 const fundingChartRef = ref<HTMLElement | null>(null)
-let chartInstance: echarts.ECharts | null = null
+let chartInstance: ECharts | null = null
+const handleChartResize = () => chartInstance?.resize()
 
 const initChart = async () => {
   if (!route.params.id) return
@@ -298,7 +305,7 @@ const initChart = async () => {
     
     if (!fundingChartRef.value) return
     if (!chartInstance) {
-      chartInstance = echarts.init(fundingChartRef.value)
+      chartInstance = init(fundingChartRef.value)
     }
     
     const dates = data.map((item: any) => item.date)
@@ -346,7 +353,7 @@ const initChart = async () => {
             borderWidth: 2
           },
           areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            color: new graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: 'rgba(64,158,255,0.4)' },
               { offset: 1, color: 'rgba(64,158,255,0.0)' }
             ])
@@ -356,10 +363,6 @@ const initChart = async () => {
     }
     
     chartInstance.setOption(option)
-    
-    window.addEventListener('resize', () => {
-      chartInstance?.resize()
-    })
   } catch (error) {
     console.error('Failed to fetch chart data', error)
   }
@@ -542,13 +545,17 @@ const submitSupport = async () => {
 }
 
 onMounted(() => {
+  window.addEventListener('resize', handleChartResize)
   fetchProjectDetail()
   fetchComments()
   fetchUpdates()
   fetchRewards()
-  nextTick(() => {
-    initChart()
-  })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleChartResize)
+  chartInstance?.dispose()
+  chartInstance = null
 })
 </script>
 

@@ -54,8 +54,26 @@
                   {{ row.payChannel === '3' ? '余额支付' : (row.payChannel === '2' ? '支付宝' : (row.payChannel === '1' ? '微信支付' : row.payChannel)) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="createdAt" label="支持时间" width="180" />
-              <el-table-column label="操作" width="100" fixed="right">
+              <el-table-column prop="deliveryStatus" label="发货状态" width="120">
+                <template #default="{ row }">
+                  <el-tag v-if="row.status === 1" :type="row.deliveryStatus === 1 ? 'success' : 'warning'">
+                    {{ row.deliveryStatus === 1 ? '已发货' : '待发货' }}
+                  </el-tag>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="expressNo" label="物流单号" width="150">
+                <template #default="{ row }">
+                  <span v-if="row.deliveryStatus === 1 && row.expressNo" style="color: #67c23a; font-size: 13px;">{{ row.expressNo }}</span>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="createdAt" label="支持时间" width="180">
+                <template #default="{ row }">
+                  {{ new Date(row.createdAt).toLocaleString() }}
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="120" fixed="right">
                 <template #default="{ row }">
                   <el-button type="primary" link @click="router.push(`/projects/${row.projectId}`)">
                     查看项目
@@ -86,21 +104,28 @@
                   </el-link>
                 </template>
               </el-table-column>
-              <el-table-column label="类型" width="150">
+              <el-table-column label="资金流向" width="150">
                 <template #default="scope">
-                  <el-tag v-if="scope.row.type === 1" type="success">支持支付</el-tag>
-                  <el-tag v-else-if="scope.row.type === 2" type="danger">平台退款</el-tag>
-                  <el-tag v-else-if="scope.row.type === 3" type="warning">阶段拨付</el-tag>
+                  <el-tag v-if="scope.row.type === 1" type="success" effect="dark">支出 (支持项目)</el-tag>
+                  <el-tag v-else-if="scope.row.type === 2" type="danger" effect="dark">收入 (平台退款)</el-tag>
+                  <el-tag v-else-if="scope.row.type === 3" type="warning" effect="dark">收入 (阶段拨付)</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="金额" width="120">
+              <el-table-column label="变动金额" width="150">
                 <template #default="scope">
-                  <span :style="{ color: scope.row.type === 2 ? '#67c23a' : '#f56c6c' }">
-                    {{ scope.row.type === 2 ? '+' : '-' }} ￥{{ scope.row.amount }}
+                  <span :style="{ color: scope.row.type === 2 || scope.row.type === 3 ? '#67C23A' : '#F56C6C', fontWeight: 'bold', fontSize: '16px' }">
+                    {{ scope.row.type === 2 || scope.row.type === 3 ? '+' : '-' }} ￥{{ scope.row.amount }}
                   </span>
                 </template>
               </el-table-column>
-              <el-table-column prop="remark" label="备注说明" />
+              <el-table-column label="财务溯源详情 (业务场景与流向)" min-width="350">
+                <template #default="scope">
+                  <div class="trace-detail">
+                    <el-icon class="trace-icon"><Tickets /></el-icon>
+                    <span class="trace-text">{{ scope.row.remark }}</span>
+                  </div>
+                </template>
+              </el-table-column>
               <el-table-column prop="createdAt" label="时间" width="180">
                 <template #default="scope">
                   {{ new Date(scope.row.createdAt).toLocaleString() }}
@@ -129,6 +154,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
 import { useRouter } from 'vue-router'
+import { Tickets } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -231,5 +257,24 @@ onMounted(() => {
 }
 .stat-value.highlight {
   color: #f56c6c;
+}
+.trace-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  border-left: 3px solid var(--el-color-primary);
+}
+.trace-icon {
+  margin-top: 3px;
+  color: var(--el-color-primary);
+  font-size: 16px;
+}
+.trace-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--el-text-color-regular);
 }
 </style>

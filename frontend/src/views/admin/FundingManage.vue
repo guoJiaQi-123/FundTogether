@@ -90,40 +90,28 @@
       <el-tab-pane label="平台账户余额流水明细" name="ledgers">
         <el-table :data="ledgers" style="width: 100%" v-loading="loadingLedgers">
           <el-table-column prop="id" label="流水号" width="100" />
-          <el-table-column label="业务场景" min-width="250" show-overflow-tooltip>
-            <template #default="{ row }">
-              <span v-if="row.type === 1">
-                用户 <el-tag size="small" type="info">{{ row.userName || `用户 ${row.userId}` }}</el-tag> 投资 
-                <el-link type="primary" :underline="false" @click="router.push(`/projects/${row.projectId}`)">
-                  {{ row.projectName || `项目 ${row.projectId}` }}
-                </el-link> 
-                到 平台账户
-              </span>
-              <span v-else-if="row.type === 2">
-                平台账户 退款给 用户 <el-tag size="small" type="info">{{ row.userName || `用户 ${row.userId}` }}</el-tag>
-                (关联: <el-link type="primary" :underline="false" @click="router.push(`/projects/${row.projectId}`)">{{ row.projectName || `项目 ${row.projectId}` }}</el-link>)
-              </span>
-              <span v-else-if="row.type === 3">
-                平台账户 拨款给 项目发起人 <el-tag size="small" type="info">{{ row.userName || `用户 ${row.userId}` }}</el-tag>
-                (关联: <el-link type="primary" :underline="false" @click="router.push(`/projects/${row.projectId}`)">{{ row.projectName || `项目 ${row.projectId}` }}</el-link>)
-              </span>
-            </template>
-          </el-table-column>
           <el-table-column label="资金流向" width="150">
             <template #default="scope">
-              <el-tag v-if="scope.row.type === 1" type="success" effect="dark">收入 (转入平台)</el-tag>
+              <el-tag v-if="scope.row.type === 1" type="success" effect="dark">收入 (用户投资)</el-tag>
               <el-tag v-else-if="scope.row.type === 2" type="danger" effect="dark">支出 (平台退款)</el-tag>
               <el-tag v-else-if="scope.row.type === 3" type="warning" effect="dark">支出 (平台拨款)</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="变动金额" width="120">
+          <el-table-column label="变动金额" width="150">
             <template #default="scope">
-              <span :style="{ color: scope.row.type === 1 ? '#67C23A' : '#F56C6C', fontWeight: 'bold' }">
+              <span :style="{ color: scope.row.type === 1 ? '#67C23A' : '#F56C6C', fontWeight: 'bold', fontSize: '16px' }">
                 {{ scope.row.type === 1 ? '+' : '-' }} ¥ {{ scope.row.amount }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="remark" label="备注说明" />
+          <el-table-column label="财务溯源详情 (业务场景与流向)" min-width="350">
+            <template #default="scope">
+              <div class="trace-detail">
+                <el-icon class="trace-icon"><Tickets /></el-icon>
+                <span class="trace-text">{{ scope.row.remark }}</span>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column prop="createdAt" label="时间" width="180">
             <template #default="scope">
               {{ new Date(scope.row.createdAt).toLocaleString() }}
@@ -149,7 +137,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../../utils/request'
 import { useRouter } from 'vue-router'
-import { User } from '@element-plus/icons-vue'
+import { User, Tickets } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const activeTab = ref('payouts')
@@ -277,5 +265,24 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+.trace-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  border-left: 3px solid var(--el-color-primary);
+}
+.trace-icon {
+  margin-top: 3px;
+  color: var(--el-color-primary);
+  font-size: 16px;
+}
+.trace-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--el-text-color-regular);
 }
 </style>

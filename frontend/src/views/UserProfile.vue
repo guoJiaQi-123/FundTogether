@@ -276,9 +276,18 @@
         </div>
         <div class="payment-method">
           <span class="label">支付方式：</span>
-          <div class="alipay-option">
-            <el-icon><Platform /></el-icon> 支付宝
-          </div>
+          <el-radio-group v-model="rechargeMethod">
+            <el-radio value="alipay">
+              <div class="alipay-option">
+                <el-icon><Platform /></el-icon> 支付宝 (Alipay)
+              </div>
+            </el-radio>
+            <el-radio value="mock">
+              <div class="mock-option">
+                <el-icon><Money /></el-icon> 本地模拟充值 (Dev)
+              </div>
+            </el-radio>
+          </el-radio-group>
         </div>
       </div>
       <template #footer>
@@ -347,6 +356,7 @@ const passwordForm = ref({
 const balance = ref(0)
 const showRechargeDialog = ref(false)
 const rechargeAmount = ref(100)
+const rechargeMethod = ref('mock')
 const recharging = ref(false)
 
 const fetchBalance = async () => {
@@ -371,18 +381,31 @@ const handleRecharge = async () => {
   
   recharging.value = true
   try {
-    const res: any = await request.post('/user/account/recharge', {
-      amount: rechargeAmount.value
-    })
-    
-    if (res.code === 200 && res.data) {
-      const formHtml = res.data
-      const div = document.createElement('div')
-      div.innerHTML = formHtml
-      document.body.appendChild(div)
-      document.forms[document.forms.length - 1].submit()
+    if (rechargeMethod.value === 'mock') {
+      const res: any = await request.post('/user/account/recharge/mock', {
+        amount: rechargeAmount.value
+      })
+      if (res.code === 200) {
+        ElMessage.success('模拟充值成功')
+        showRechargeDialog.value = false
+        fetchBalance() // 刷新余额
+      } else {
+        ElMessage.error(res.message || '模拟充值失败')
+      }
     } else {
-      ElMessage.error(res.message || '发起充值失败')
+      const res: any = await request.post('/user/account/recharge', {
+        amount: rechargeAmount.value
+      })
+      
+      if (res.code === 200 && res.data) {
+        const formHtml = res.data
+        const div = document.createElement('div')
+        div.innerHTML = formHtml
+        document.body.appendChild(div)
+        document.forms[document.forms.length - 1].submit()
+      } else {
+        ElMessage.error(res.message || '发起充值失败')
+      }
     }
   } catch (error) {
     console.error('Recharge error:', error)
@@ -936,7 +959,7 @@ const handleUpdatePassword = async () => {
   color: #606266;
 }
 
-.alipay-option {
+.alipay-option, .mock-option {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -945,6 +968,17 @@ const handleUpdatePassword = async () => {
   color: #409eff;
   border-radius: 4px;
   background-color: #ecf5ff;
+}
+
+.mock-option {
+  border-color: #67c23a;
+  color: #67c23a;
+  background-color: #f0f9eb;
+}
+
+.payment-method .el-radio {
+  margin-right: 16px;
+  margin-bottom: 8px;
 }
 
 @media (max-width: 1024px) {

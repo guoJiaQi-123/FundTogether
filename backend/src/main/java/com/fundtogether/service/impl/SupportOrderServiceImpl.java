@@ -80,7 +80,8 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
         ledger.setAmount(order.getAmount());
         ledger.setType(1); // 1-用户支付
         ledger.setStatus(1); // 1-成功
-        ledger.setRemark("支持项目支付，订单号：" + order.getOrderNo());
+        ledger.setRemark(String.format("业务场景: 支持项目[%s], 资金流向: 用户[%s] -> 平台 -> 项目[%s]", project.getTitle(),
+                user.getNickname(), project.getTitle()));
         fundingLedgerService.save(ledger);
 
         // Update project stats
@@ -159,5 +160,14 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
         stats.put("projectCount", projectCount);
 
         return stats;
+    }
+
+    @Override
+    public Project getProjectByOrderId(Long orderId) {
+        SupportOrder order = this.getById(orderId);
+        if (order != null) {
+            return projectService.getById(order.getProjectId());
+        }
+        return null;
     }
 }

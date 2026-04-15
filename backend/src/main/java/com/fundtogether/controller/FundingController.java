@@ -95,16 +95,6 @@ public class FundingController {
         payout.setPayoutTime(LocalDateTime.now());
         projectPayoutService.updateById(payout);
         
-        // Record in ledger
-        FundingLedger ledger = new FundingLedger();
-        ledger.setProjectId(payout.getProjectId());
-        ledger.setUserId(payout.getSponsorId());
-        ledger.setAmount(payout.getAmount());
-        ledger.setType(3); // 3-阶段拨付给发起人
-        ledger.setStatus(1); // 成功
-        ledger.setRemark(payout.getConditionDesc());
-        fundingLedgerService.save(ledger);
-        
         // Add funds to project sponsor's account balance
         SysUser sponsor = sysUserService.getById(payout.getSponsorId());
         if (sponsor != null) {
@@ -112,6 +102,19 @@ public class FundingController {
             sponsor.setBalance(currentBalance.add(payout.getAmount()));
             sysUserService.updateById(sponsor);
         }
+
+        // Record in ledger
+        FundingLedger ledger = new FundingLedger();
+        ledger.setProjectId(payout.getProjectId());
+        ledger.setUserId(payout.getSponsorId());
+        ledger.setAmount(payout.getAmount());
+        ledger.setType(3); // 3-阶段拨付给发起人
+        ledger.setStatus(1); // 成功
+        Project project = projectService.getById(payout.getProjectId());
+        String projectName = project != null ? project.getTitle() : "未知项目";
+        String sponsorName = sponsor != null ? sponsor.getNickname() : "未知用户";
+        ledger.setRemark(String.format("业务场景: 项目阶段拨付[%s], 资金流向: 平台 -> 发起人[%s] -> 项目[%s]", payout.getConditionDesc(), sponsorName, projectName));
+        fundingLedgerService.save(ledger);
         
         return Result.success("拨付成功");
     }

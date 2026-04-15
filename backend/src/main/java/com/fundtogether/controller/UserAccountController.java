@@ -54,6 +54,27 @@ public class UserAccountController {
         return Result.success(form);
     }
 
+    @PostMapping("/recharge/mock")
+    public Result<String> mockRecharge(@RequestBody Map<String, BigDecimal> params) {
+        BigDecimal amount = params.get("amount");
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return Result.error("充值金额必须大于0");
+        }
+        LoginUser loginUser = (LoginUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Long userId = loginUser.getId();
+        SysUser user = sysUserService.getById(userId);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+
+        // 模拟直接增加余额
+        BigDecimal currentBalance = user.getBalance() == null ? BigDecimal.ZERO : user.getBalance();
+        user.setBalance(currentBalance.add(amount));
+        sysUserService.updateById(user);
+
+        return Result.success("模拟充值成功");
+    }
+
     @PostMapping("/alipay/notify")
     public String alipayNotify(HttpServletRequest request) {
         Map<String, String> params = new HashMap<>();
