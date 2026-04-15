@@ -32,6 +32,11 @@ export const getUserInfo = () => {
   return request.get('/user/info')
 }
 
+// Public user profile (non-sensitive fields only)
+export const getPublicUserProfile = (id: number) => {
+  return request.get(`/public/user/${id}`)
+}
+
 export const bindPaymentMethod = (data: any) => {
   return request.post('/user/payment-method', data)
 }

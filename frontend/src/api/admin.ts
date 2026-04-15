@@ -23,3 +23,7 @@ export const rejectProject = (id: number, reason: string) => {
 export const takedownProject = (id: number, reason: string) => {
   return request.put(`/admin/projects/takedown/${id}`, { reason })
 }
+
+export const updateProjectContentByAdmin = (data: any) => {
+  return request.put('/admin/projects/update-content', data)
+}

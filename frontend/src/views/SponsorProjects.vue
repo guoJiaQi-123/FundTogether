@@ -144,10 +144,16 @@
         </template>
         <el-table-column label="头像" width="80">
           <template #default="{ row }">
-            <el-avatar :size="40" :src="row.avatar" />
+            <el-avatar :size="40" :src="getAvatarSrc(row?.avatar)" />
           </template>
         </el-table-column>
-        <el-table-column prop="nickname" label="昵称" width="150" />
+        <el-table-column label="昵称" width="150" show-overflow-tooltip>
+          <template #default="{ row }">
+            <el-link type="primary" :underline="false" @click="openUserPreview(row.userId)">
+              {{ row.nickname || `用户 ${row.userId}` }}
+            </el-link>
+          </template>
+        </el-table-column>
         <el-table-column prop="amount" label="支持金额" width="100" />
         <el-table-column prop="message" label="留言" show-overflow-tooltip />
         <el-table-column prop="payTime" label="支付时间" width="180" />
@@ -170,7 +176,7 @@
           <el-input v-model="projectForm.title" placeholder="请输入项目标题" :disabled="isActiveEdit" />
         </el-form-item>
         <el-form-item label="项目简介" prop="summary">
-          <el-input v-model="projectForm.summary" type="textarea" rows="2" placeholder="请输入一句话简介" />
+          <el-input v-model="projectForm.summary" type="textarea" :rows="2" placeholder="请输入一句话简介" />
         </el-form-item>
         <el-form-item label="封面图片" prop="coverImage">
           <el-input v-model="projectForm.coverImage" placeholder="请输入封面图片URL" :disabled="isActiveEdit" />
@@ -191,7 +197,7 @@
           />
         </el-form-item>
         <el-form-item label="项目详情" prop="content">
-          <el-input v-model="projectForm.content" type="textarea" rows="6" placeholder="支持HTML格式" />
+          <el-input v-model="projectForm.content" type="textarea" :rows="6" placeholder="支持HTML格式" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -266,7 +272,7 @@
           <el-input v-model="updateForm.title" placeholder="请输入标题" />
         </el-form-item>
         <el-form-item label="动态内容">
-          <el-input v-model="updateForm.content" type="textarea" rows="4" placeholder="向支持者更新项目进度..." />
+          <el-input v-model="updateForm.content" type="textarea" :rows="4" placeholder="向支持者更新项目进度..." />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -309,7 +315,13 @@
         <template #empty>
           <el-empty description="暂无可发货的支持订单，后续支持成功后会自动出现在这里。" />
         </template>
-        <el-table-column prop="nickname" label="支持者" width="120" />
+        <el-table-column label="支持者" width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <el-link type="primary" :underline="false" @click="openUserPreview(row.userId)">
+              {{ row.nickname || `用户 ${row.userId}` }}
+            </el-link>
+          </template>
+        </el-table-column>
         <el-table-column prop="amount" label="支持金额" width="100" />
         <el-table-column prop="message" label="留言" show-overflow-tooltip />
         <el-table-column prop="payTime" label="支付时间" width="160">
@@ -344,6 +356,7 @@
         />
       </div>
     </el-dialog>
+    <UserProfilePreviewDialog v-model="userPreviewVisible" :user-id="userPreviewUserId" />
   </div>
 </template>
 
@@ -353,6 +366,8 @@ import { useRouter } from 'vue-router'
 import { ArrowDown, Link } from '@element-plus/icons-vue'
 import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import defaultAvatar from '../assets/default-avatar.svg'
+import UserProfilePreviewDialog from '../components/UserProfilePreviewDialog.vue'
 
 const router = useRouter()
 
@@ -372,6 +387,15 @@ const total = ref(0)
 const formatDateTime = (value?: string) => {
   if (!value) return '-'
   return new Date(value).toLocaleString()
+}
+
+const getAvatarSrc = (avatar?: string) => avatar || defaultAvatar
+
+const userPreviewVisible = ref(false)
+const userPreviewUserId = ref<number | null>(null)
+const openUserPreview = (userId: number) => {
+  userPreviewUserId.value = userId
+  userPreviewVisible.value = true
 }
 
 const summaryCards = computed(() => {
@@ -605,14 +629,16 @@ const getStatusName = (row: any) => {
   return map[row.status] || '未知'
 }
 
-const getStatusTagType = (row: any) => {
+type StatusTagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+
+const getStatusTagType = (row: any): StatusTagType | undefined => {
   if (row.status === 1 && row.currentAmount >= row.targetAmount) {
     return 'success'
   }
-  const map: Record<number, string> = {
+  const map: Record<number, StatusTagType> = {
     0: 'warning', 1: 'primary', 2: 'danger', 3: 'info', 4: 'info', 5: 'success', 6: 'danger'
   }
-  return map[row.status] || ''
+  return map[row.status]
 }
 
 const fetchProjects = async () => {

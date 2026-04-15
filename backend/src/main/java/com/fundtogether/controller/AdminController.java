@@ -6,8 +6,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fundtogether.common.Result;
 import com.fundtogether.dto.UserRoleUpdateDTO;
 import com.fundtogether.dto.CategoryStatExcelDTO;
+import com.fundtogether.dto.AdminProjectContentUpdateDTO;
 import com.fundtogether.entity.SysUser;
 import com.fundtogether.entity.Project;
+import com.fundtogether.vo.SupporterVO;
 import com.fundtogether.service.SysUserService;
 import com.fundtogether.service.ProjectService;
 import com.fundtogether.mapper.ProjectMapper;
@@ -201,7 +203,50 @@ public class AdminController {
                .orderByDesc(com.fundtogether.entity.SupportOrder::getPayTime);
         
         java.util.List<com.fundtogether.entity.SupportOrder> orders = supportOrderService.list(wrapper);
-        return Result.success(orders);
+        java.util.List<SupporterVO> voList = orders.stream().map(order -> {
+            SupporterVO vo = new SupporterVO();
+            // Map explicitly to avoid BeanUtils type-safety warnings and keep output stable.
+            vo.setId(order.getId());
+            vo.setUserId(order.getUserId());
+            vo.setAmount(order.getAmount());
+            vo.setMessage(order.getMessage());
+            vo.setPayTime(order.getPayTime());
+            vo.setDeliveryStatus(order.getDeliveryStatus());
+            vo.setDeliveryTime(order.getDeliveryTime());
+            vo.setExpressNo(order.getExpressNo());
+            SysUser user = sysUserService.getById(order.getUserId());
+            if (user != null) {
+                vo.setNickname(user.getNickname());
+                vo.setAvatar(user.getAvatar());
+            }
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(voList);
+    }
+
+    @PutMapping("/projects/update-content")
+    public Result<?> updateProjectContent(@RequestBody @Valid AdminProjectContentUpdateDTO dto, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return Result.error(bindingResult.getAllErrors().get(0).getDefaultMessage());
+        }
+
+        Project project = projectService.getById(dto.getId());
+        if (project == null) {
+            return Result.error("项目不存在");
+        }
+
+        project.setSummary(dto.getSummary());
+        project.setContent(dto.getContent());
+        project.setVideoUrl(dto.getVideoUrl());
+        if (dto.getStartTime() != null) {
+            project.setStartTime(dto.getStartTime());
+        }
+        if (dto.getEndTime() != null) {
+            project.setEndTime(dto.getEndTime());
+        }
+        projectService.updateById(project);
+
+        return Result.success("项目内容已更新");
     }
 
     @PutMapping("/user/status/{id}")

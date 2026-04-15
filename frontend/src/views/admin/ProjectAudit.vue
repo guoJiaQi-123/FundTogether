@@ -71,18 +71,22 @@
                 <div style="color: #f56c6c;">已筹：￥{{ row.currentAmount }}</div>
               </template>
             </el-table-column>
-            <el-table-column label="筹款时间" width="220">
+            <el-table-column label="筹款时间" width="160">
               <template #default="{ row }">
-                <div style="font-size: 12px; color: #606266;">
-                  起: {{ row.startTime ? row.startTime.substring(0, 10) : '-' }}<br/>
-                  止: {{ row.endTime ? row.endTime.substring(0, 10) : '-' }}
+                <div style="font-size: 12px; color: #606266; line-height: 1.2;">
+                  {{ row.startTime ? row.startTime.substring(0, 10) : '-' }} ～ {{ row.endTime ? row.endTime.substring(0, 10) : '-' }}
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="操作" width="260" fixed="right">
               <template #default="{ row }">
-                <el-button type="primary" size="small" @click="openSupportersDialog(row.id)">支持者</el-button>
-                <el-button v-if="row.status === 1" type="danger" size="small" @click="openTakedownDialog(row.id)">下架</el-button>
+                <div class="op-actions">
+                  <el-button type="primary" size="small" @click="openSupportersDialog(row.id)">支持者</el-button>
+                  <el-tooltip content="编辑项目简介/详情/视频链接" placement="top">
+                    <el-button type="warning" size="small" @click="openEditContentDialog(row)">编辑内容</el-button>
+                  </el-tooltip>
+                  <el-button v-if="row.status === 1" type="danger" size="small" @click="openTakedownDialog(row.id)">下架</el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -130,7 +134,16 @@
         </el-button>
       </div>
       <el-table :data="supporters" border style="width: 100%" v-loading="loadingSupporters">
-        <el-table-column prop="userId" label="用户ID" width="100" />
+        <el-table-column label="用户" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <el-avatar :size="28" :src="getAvatarSrc(row?.avatar)" />
+              <el-link type="primary" :underline="false" @click="openUserPreview(row.userId)">
+                {{ row.nickname || `用户 ${row.userId}` }}
+              </el-link>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="支持金额" width="120">
           <template #default="{ row }">
             <span style="color: #f56c6c; font-weight: bold;">￥{{ row.amount }}</span>
@@ -140,16 +153,61 @@
         <el-table-column prop="payTime" label="支持时间" width="180" />
       </el-table>
     </el-dialog>
+
+    <!-- 管理员编辑项目内容 -->
+    <el-dialog v-model="editContentDialogVisible" title="编辑项目内容" width="800px">
+      <el-form ref="editContentFormRef" :model="editContentForm" :rules="editContentRules" label-width="100px">
+        <el-form-item label="项目标题">
+          <el-input v-model="editContentForm.title" disabled />
+        </el-form-item>
+        <el-form-item label="项目简介" prop="summary">
+          <el-input v-model="editContentForm.summary" type="textarea" :rows="2" placeholder="请输入一句话简介" />
+        </el-form-item>
+        <el-form-item label="视频链接">
+          <el-input v-model="editContentForm.videoUrl" placeholder="请输入视频链接URL (可选)" />
+        </el-form-item>
+        <el-form-item label="项目详情" prop="content">
+          <el-input v-model="editContentForm.content" type="textarea" :rows="8" placeholder="支持HTML格式" />
+        </el-form-item>
+        <el-form-item label="筹款时间">
+          <div style="display:flex; gap:12px; width:100%;">
+            <el-date-picker
+              v-model="editContentForm.startTime"
+              type="datetime"
+              placeholder="开始时间"
+              value-format="YYYY-MM-DDTHH:mm:ss"
+              style="flex:1;"
+            />
+            <el-date-picker
+              v-model="editContentForm.endTime"
+              type="datetime"
+              placeholder="截止时间"
+              value-format="YYYY-MM-DDTHH:mm:ss"
+              style="flex:1;"
+            />
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editContentDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitEditContent" :loading="savingContent">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <UserProfilePreviewDialog v-model="userPreviewVisible" :user-id="userPreviewUserId" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Link, User } from '@element-plus/icons-vue'
-import { getPendingProjects, approveProject, rejectProject, takedownProject } from '../../api/admin'
+import type { FormInstance, FormRules } from 'element-plus'
+import { getPendingProjects, approveProject, rejectProject, takedownProject, updateProjectContentByAdmin } from '../../api/admin'
 import request from '../../utils/request'
+import defaultAvatar from '../../assets/default-avatar.svg'
+import UserProfilePreviewDialog from '../../components/UserProfilePreviewDialog.vue'
 
 const router = useRouter()
 const activeTab = ref('pending')
@@ -181,31 +239,43 @@ const supporters = ref<any[]>([])
 const loadingSupporters = ref(false)
 const exporting = ref(false)
 
+const getAvatarSrc = (avatar?: string) => avatar || defaultAvatar
+
+const userPreviewVisible = ref(false)
+const userPreviewUserId = ref<number | null>(null)
+const openUserPreview = (userId: number) => {
+  userPreviewUserId.value = userId
+  userPreviewVisible.value = true
+}
+
+const escapeCsvCell = (value: unknown) => {
+  const normalized = String(value ?? '').replace(/"/g, '""')
+  return `"${normalized}"`
+}
+
 const exportSupporters = () => {
   if (supporters.value.length === 0) {
     ElMessage.warning('暂无数据可导出')
     return
   }
   exporting.value = true
-  const headers = ['用户ID', '支持金额', '留言', '支持时间']
+  const headers = ['用户名称', '支持金额', '留言', '支持时间']
   const rows = supporters.value.map(s => [
-    s.userId, 
-    s.amount, 
-    s.message || '', 
+    s.nickname || `用户 ${s.userId}`,
+    s.amount,
+    s.message || '',
     s.payTime || ''
   ])
-  
-  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-    + headers.join(",") + "\n" 
-    + rows.map(e => e.join(",")).join("\n")
-    
-  const encodedUri = encodeURI(csvContent)
-  const link = document.createElement("a")
-  link.setAttribute("href", encodedUri)
-  link.setAttribute("download", `项目支持者列表.csv`)
-  document.body.appendChild(link)
+
+  const csvContent = [
+    headers.map(escapeCsvCell).join(','),
+    ...rows.map(row => row.map(escapeCsvCell).join(','))
+  ].join('\n')
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `项目支持者列表_${Date.now()}.csv`
   link.click()
-  document.body.removeChild(link)
   exporting.value = false
 }
 
@@ -221,6 +291,64 @@ const openSupportersDialog = async (projectId: number) => {
   } finally {
     loadingSupporters.value = false
   }
+}
+
+// 管理员编辑项目内容
+const editContentDialogVisible = ref(false)
+const savingContent = ref(false)
+const editContentFormRef = ref<FormInstance>()
+const editContentForm = ref<any>({
+  id: undefined,
+  title: '',
+  summary: '',
+  videoUrl: '',
+  content: '',
+  startTime: '',
+  endTime: ''
+})
+
+const editContentRules = reactive<FormRules>({
+  summary: [{ required: true, message: '请输入项目简介', trigger: 'blur' }],
+  content: [{ required: true, message: '请输入项目详情', trigger: 'blur' }]
+})
+
+const openEditContentDialog = (row: any) => {
+  editContentForm.value = {
+    id: row.id,
+    title: row.title || '',
+    summary: row.summary || '',
+    videoUrl: row.videoUrl || '',
+    content: row.content || '',
+    startTime: row.startTime || '',
+    endTime: row.endTime || ''
+  }
+  editContentDialogVisible.value = true
+  if (editContentFormRef.value) editContentFormRef.value.clearValidate()
+}
+
+const submitEditContent = async () => {
+  if (!editContentFormRef.value) return
+  await editContentFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    savingContent.value = true
+    try {
+      await updateProjectContentByAdmin({
+        id: editContentForm.value.id,
+        summary: editContentForm.value.summary,
+        videoUrl: editContentForm.value.videoUrl,
+        content: editContentForm.value.content,
+        startTime: editContentForm.value.startTime,
+        endTime: editContentForm.value.endTime
+      })
+      ElMessage.success('项目内容已更新')
+      editContentDialogVisible.value = false
+      fetchAllProjects()
+    } catch (error: any) {
+      ElMessage.error(error.message || '保存失败')
+    } finally {
+      savingContent.value = false
+    }
+  })
 }
 
 const fetchPendingProjects = async () => {
@@ -358,6 +486,13 @@ const handleTakedown = async () => {
   margin-top: 24px;
   display: flex;
   justify-content: flex-end;
+}
+
+.op-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {

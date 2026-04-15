@@ -92,6 +92,11 @@ const routes: Array<RouteRecordRaw> = [
         path: 'user/messages',
         name: 'UserMessages',
         component: () => import('../views/UserMessages.vue')
+      },
+      {
+        path: 'users/:id',
+        name: 'UserHome',
+        component: () => import('../views/UserHome.vue')
       }
     ]
   }
