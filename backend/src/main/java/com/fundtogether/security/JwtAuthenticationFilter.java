@@ -1,5 +1,6 @@
 package com.fundtogether.security;
 
+import com.fundtogether.common.enums.UserRole;
 import com.fundtogether.utils.JwtUtils;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -14,7 +15,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -33,13 +34,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String account = claims.get("account", String.class);
                 Integer role = claims.get("role", Integer.class);
 
-                String roleName = "ROLE_USER";
-                if (role == 2) roleName = "ROLE_SPONSOR";
-                else if (role == 3) roleName = "ROLE_ADMIN";
+                List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+                if (UserRole.isSponsor(role)) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_SPONSOR"));
+                }
+                if (UserRole.isAdmin(role)) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+                }
 
-                List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(roleName));
-
-                // We use LoginUser to hold user details
                 LoginUser loginUser = new LoginUser(userId, account, role, authorities);
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

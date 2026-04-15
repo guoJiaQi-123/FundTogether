@@ -29,6 +29,12 @@
           <el-menu-item index="/admin/user-levels">
             <span>用户等级</span>
           </el-menu-item>
+          <el-menu-item index="/admin/withdrawals">
+            <span>提现审批</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/reports">
+            <span>举报管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
       <el-main class="admin-main">

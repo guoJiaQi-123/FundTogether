@@ -772,23 +772,31 @@ onMounted(() => {
 <style scoped>
 .sponsor-container {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--bg-page);
 }
 
 .main-content {
   max-width: 1200px;
-  margin: 30px auto;
+  margin: 0 auto;
+  padding: var(--spacing-4);
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-3);
+}
+
+.page-header h2 {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
 }
 
 .overview-section {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-3);
 }
 
 .overview-copy {
@@ -797,31 +805,33 @@ onMounted(() => {
 
 .overview-copy h3 {
   margin: 0 0 6px;
-  font-size: 20px;
-  color: #303133;
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+  font-family: var(--font-heading);
 }
 
 .overview-copy p {
   margin: 0;
-  color: #606266;
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 .overview-grid,
 .overview-skeleton {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--spacing-2);
 }
 
 .overview-card {
   position: relative;
   overflow: hidden;
-  padding: 20px;
-  border-radius: 18px;
-  background: #ffffff;
-  border: 1px solid #ebeef5;
-  box-shadow: 0 10px 30px -20px rgba(15, 23, 42, 0.3);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
 }
 
 .overview-card::after {
@@ -836,23 +846,23 @@ onMounted(() => {
 }
 
 .overview-card.primary {
-  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
-  color: #fff;
+  background: var(--primary);
+  color: var(--bg-surface);
 }
 
 .overview-card.success {
-  background: linear-gradient(135deg, #67c23a 0%, #95d475 100%);
-  color: #fff;
+  background: var(--color-success);
+  color: var(--bg-surface);
 }
 
 .overview-card.warning {
-  background: linear-gradient(135deg, #e6a23c 0%, #f3d19e 100%);
-  color: #fff;
+  background: var(--color-warning);
+  color: var(--bg-surface);
 }
 
 .overview-card.info {
-  background: linear-gradient(135deg, #7c7df0 0%, #a2a4ff 100%);
-  color: #fff;
+  background: var(--secondary-2);
+  color: var(--bg-surface);
 }
 
 .overview-label,
@@ -864,31 +874,32 @@ onMounted(() => {
 }
 
 .overview-label {
-  font-size: 14px;
+  font-size: var(--text-sm);
   opacity: 0.92;
 }
 
 .overview-value {
   margin: 10px 0 6px;
-  font-size: 32px;
+  font-size: var(--text-2xl);
   line-height: 1;
+  font-weight: var(--font-weight-extrabold);
 }
 
 .overview-tip {
-  font-size: 13px;
+  font-size: var(--text-xs);
   opacity: 0.88;
 }
 
 .overview-skeleton-item {
   width: 100%;
   height: 118px;
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
 }
 
 .pagination {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: var(--spacing-3);
 }
 
 @media (max-width: 992px) {
@@ -900,13 +911,14 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .main-content {
-    margin: 20px 16px;
+    margin: 0;
+    padding: var(--spacing-3);
   }
 
   .page-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--spacing-2);
   }
 
   .overview-grid,

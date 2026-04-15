@@ -12,18 +12,40 @@ import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
 
-@ServerEndpoint("/ws/{userId}")
+@ServerEndpoint(value = "/ws/{userId}", configurator = WebSocketAuthConfig.class)
 @Component
 @Slf4j
 public class WebSocketServer {
 
-    // concurrent hash map to store websocket sessions for each user
     private static final ConcurrentHashMap<String, Session> sessionMap = new ConcurrentHashMap<>();
 
     @OnOpen
     public void onOpen(Session session, @PathParam("userId") String userId) {
+        Boolean authenticated = (Boolean) session.getUserProperties().get("authenticated");
+        if (authenticated == null || !authenticated) {
+            log.warn("WebSocket连接被拒绝: 未认证用户, userId={}", userId);
+            try {
+                session.close(new jakarta.websocket.CloseReason(
+                        jakarta.websocket.CloseReason.CloseCodes.VIOLATED_POLICY, "Authentication required"));
+            } catch (IOException e) {
+                log.error("关闭WebSocket连接失败", e);
+            }
+            return;
+        }
+
+        Long tokenUserId = (Long) session.getUserProperties().get("userId");
+        if (!String.valueOf(tokenUserId).equals(userId)) {
+            log.warn("WebSocket连接被拒绝: userId不匹配, pathUserId={}, tokenUserId={}", userId, tokenUserId);
+            try {
+                session.close(new jakarta.websocket.CloseReason(
+                        jakarta.websocket.CloseReason.CloseCodes.VIOLATED_POLICY, "User ID mismatch"));
+            } catch (IOException e) {
+                log.error("关闭WebSocket连接失败", e);
+            }
+            return;
+        }
+
         sessionMap.put(userId, session);
         log.info("WebSocket connected for user: {}, Total connections: {}", userId, sessionMap.size());
     }

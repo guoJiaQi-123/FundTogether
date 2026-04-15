@@ -331,46 +331,35 @@ onMounted(() => {
 .home-container {
   min-height: 100vh;
   background-color: var(--bg-page);
-  padding-bottom: 60px;
+  padding-bottom: calc(var(--spacing-unit) * 8);
 }
 
 .hero-section {
   position: relative;
   text-align: center;
-  padding: 100px 20px;
-  background: linear-gradient(135deg, var(--text-primary) 0%, #1E293B 100%);
+  padding: calc(var(--spacing-unit) * 12) var(--spacing-4);
+  background: var(--primary);
   color: white;
   border-radius: var(--radius-xl);
-  margin: 32px;
-  box-shadow: var(--shadow-xl);
+  margin: var(--spacing-4);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
-}
-
-.hero-section::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at center, rgba(79, 70, 229, 0.15) 0%, transparent 50%);
-  pointer-events: none;
 }
 
 .hero-title {
   font-family: var(--font-heading);
-  font-size: 56px;
+  font-size: var(--text-3xl);
   font-weight: 800;
   letter-spacing: -0.03em;
-  margin: 0 0 24px 0;
+  margin: 0 0 var(--spacing-3) 0;
   position: relative;
   z-index: 1;
   color: #FFFFFF;
 }
 
 .hero-subtitle {
-  font-size: 20px;
-  color: var(--text-tertiary);
+  font-size: var(--text-base);
+  color: rgba(255, 255, 255, 0.85);
   margin: 0 auto;
   max-width: 600px;
   line-height: 1.6;
@@ -381,13 +370,13 @@ onMounted(() => {
 .main-content {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 var(--spacing-4);
 }
 
 .content-layout {
   display: flex;
-  gap: 40px;
-  margin-top: 40px;
+  gap: calc(var(--spacing-unit) * 5);
+  margin-top: calc(var(--spacing-unit) * 5);
 }
 
 .project-list-section {
@@ -404,12 +393,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: var(--spacing-4);
 }
 
 .section-header h2 {
   margin: 0;
-  font-size: 32px;
+  font-size: var(--text-xl);
   letter-spacing: -0.02em;
   color: var(--text-primary);
 }
@@ -417,18 +406,19 @@ onMounted(() => {
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--spacing-2);
   background: var(--bg-surface);
-  padding: 16px;
+  padding: var(--spacing-2);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
 }
 
 .project-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 32px;
-  margin-bottom: 40px;
+  gap: var(--spacing-4);
+  margin-bottom: calc(var(--spacing-unit) * 5);
 }
 
 .project-card {
@@ -436,6 +426,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  transition: all var(--transition-fast);
 }
 
 .recommend-card {
@@ -449,12 +440,12 @@ onMounted(() => {
   right: 16px;
   background-color: var(--color-accent);
   color: white;
-  padding: 6px 16px;
+  padding: 4px 14px;
   border-radius: var(--radius-pill);
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 700;
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .project-image {
@@ -462,7 +453,7 @@ onMounted(() => {
   height: 220px;
   object-fit: cover;
   border-bottom: 1px solid var(--border-light);
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-fast);
 }
 
 .image-wrapper {
@@ -474,18 +465,18 @@ onMounted(() => {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #67c23a;
+  background-color: var(--color-success);
   color: white;
   padding: 4px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
   z-index: 10;
 }
 
 .project-info {
-  padding: 24px;
+  padding: var(--spacing-3);
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -493,17 +484,17 @@ onMounted(() => {
 
 .project-title {
   font-family: var(--font-heading);
-  font-size: 20px;
-  margin: 0 0 12px 0;
+  font-size: var(--text-base);
+  margin: 0 0 var(--spacing-2) 0;
   color: var(--text-primary);
   line-height: 1.3;
 }
 
 .project-desc {
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.5;
-  margin: 0 0 24px 0;
+  margin: 0 0 var(--spacing-3) 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -512,7 +503,7 @@ onMounted(() => {
 }
 
 .progress-container {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-3);
 }
 
 .project-stats {
@@ -520,7 +511,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: flex-end;
   border-top: 1px solid var(--border-light);
-  padding-top: 16px;
+  padding-top: var(--spacing-2);
 }
 
 .stat-item {
@@ -534,13 +525,13 @@ onMounted(() => {
 
 .stat-value {
   font-family: var(--font-heading);
-  font-size: 18px;
+  font-size: var(--text-base);
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .stat-label {
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text-tertiary);
   margin-top: 4px;
@@ -549,13 +540,12 @@ onMounted(() => {
 .pagination {
   display: flex;
   justify-content: center;
-  margin-top: 60px;
+  margin-top: calc(var(--spacing-unit) * 8);
 }
 
-/* Leaderboard */
 .leaderboard-card {
   position: sticky;
-  top: 100px;
+  top: 84px;
 }
 
 .leaderboard-header {
@@ -566,19 +556,19 @@ onMounted(() => {
 
 .leaderboard-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--text-base);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-1);
 }
 
 .leaderboard-item {
   display: flex;
   align-items: center;
-  padding: 16px 0;
+  padding: var(--spacing-2) 0;
   border-bottom: 1px solid var(--border-light);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .leaderboard-item:hover {
@@ -592,21 +582,33 @@ onMounted(() => {
 .rank-badge {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background-color: var(--bg-page);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: var(--text-xs);
   font-weight: 800;
-  margin-right: 16px;
+  margin-right: var(--spacing-2);
   flex-shrink: 0;
 }
 
-.rank-1 { background-color: var(--color-warning); color: white; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
-.rank-2 { background-color: #94A3B8; color: white; }
-.rank-3 { background-color: #B45309; color: white; }
+.rank-1 {
+  background-color: var(--color-warning);
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.rank-2 {
+  background-color: var(--gray-300);
+  color: white;
+}
+
+.rank-3 {
+  background-color: hsl(25, 60%, 45%);
+  color: white;
+}
 
 .image-wrapper-small {
   position: relative;
@@ -620,14 +622,14 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .status-badge-small {
   position: absolute;
   top: 2px;
   right: 2px;
-  background-color: #67c23a;
+  background-color: var(--color-success);
   color: white;
   padding: 2px 4px;
   border-radius: 2px;
@@ -643,7 +645,7 @@ onMounted(() => {
 
 .lb-title {
   font-family: var(--font-heading);
-  font-size: 15px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 4px;
@@ -653,12 +655,11 @@ onMounted(() => {
 }
 
 .lb-stats {
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-/* Responsive adjustments */
 @media (max-width: 1024px) {
   .content-layout {
     flex-direction: column;
@@ -667,25 +668,25 @@ onMounted(() => {
     width: 100%;
   }
   .hero-section {
-    margin: 16px;
-    padding: 60px 20px;
+    margin: var(--spacing-2);
+    padding: calc(var(--spacing-unit) * 8) var(--spacing-3);
   }
   .hero-title {
-    font-size: 40px;
+    font-size: var(--text-2xl);
   }
 }
 
 @media (max-width: 768px) {
   .hero-title {
-    font-size: 32px;
+    font-size: var(--text-xl);
   }
   .hero-subtitle {
-    font-size: 16px;
+    font-size: var(--text-sm);
   }
   .section-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 20px;
+    gap: var(--spacing-3);
   }
   .filter-bar {
     width: 100%;
@@ -699,7 +700,7 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
   .main-content {
-    padding: 0 16px;
+    padding: 0 var(--spacing-2);
   }
 }
 </style>

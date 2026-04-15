@@ -17,9 +17,19 @@
               <el-tag v-if="profileLoaded" size="small" effect="plain" type="info" class="gender-tag">
                 {{ genderText(profile?.gender) }}
               </el-tag>
+              <FollowButton
+                v-if="safeUserId && profileLoaded"
+                :user-id="safeUserId"
+                size="small"
+                @follow-changed="onFollowChanged"
+              />
             </div>
             <div class="hero-sub">
               <span class="sub-item">ID: {{ profile?.id ?? safeUserId ?? '-' }}</span>
+              <span class="dot">·</span>
+              <span class="sub-item clickable" @click="openFollowList('following')">{{ followingCount }} 关注</span>
+              <span class="dot">·</span>
+              <span class="sub-item clickable" @click="openFollowList('followers')">{{ followerCount }} 粉丝</span>
               <span class="dot">·</span>
               <span class="sub-item">加入: {{ formatDate(profile?.createdAt) }}</span>
             </div>
@@ -51,6 +61,15 @@
         </el-descriptions>
       </template>
     </div>
+
+    <FollowListDialog
+      v-model="showFollowList"
+      :user-id="safeUserId!"
+      :following-count="followingCount"
+      :follower-count="followerCount"
+      :initial-tab="followListTab"
+      @counts-changed="onCountsChanged"
+    />
   </el-dialog>
 </template>
 
@@ -58,6 +77,8 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getPublicUserProfile } from '../api/user'
+import FollowButton from './FollowButton.vue'
+import FollowListDialog from './FollowListDialog.vue'
 import defaultAvatar from '../assets/default-avatar.svg'
 
 const props = defineProps<{
@@ -71,6 +92,10 @@ const emit = defineEmits<{
 
 const loading = ref(false)
 const profile = ref<any>(null)
+const followingCount = ref(0)
+const followerCount = ref(0)
+const showFollowList = ref(false)
+const followListTab = ref<'following' | 'followers'>('following')
 
 const safeUserId = computed(() => {
   const id = props.userId
@@ -98,6 +123,8 @@ const loadProfile = async () => {
   try {
     const res: any = await getPublicUserProfile(safeUserId.value)
     profile.value = res.data
+    followingCount.value = res.data?.followingCount || 0
+    followerCount.value = res.data?.followerCount || 0
   } catch (e) {
     ElMessage.error('获取用户信息失败')
     profile.value = null
@@ -106,11 +133,25 @@ const loadProfile = async () => {
   }
 }
 
+const onFollowChanged = (data: { isFollowing: boolean; followingCount: number; followerCount: number }) => {
+  followingCount.value = data.followingCount
+  followerCount.value = data.followerCount
+}
+
+const onCountsChanged = (data: { followingCount: number; followerCount: number }) => {
+  followingCount.value = data.followingCount
+  followerCount.value = data.followerCount
+}
+
+const openFollowList = (tab: 'following' | 'followers') => {
+  followListTab.value = tab
+  showFollowList.value = true
+}
+
 watch(
   () => [props.modelValue, safeUserId.value] as const,
   ([visible, id], [prevVisible, prevId]) => {
     if (!visible) return
-    // Fetch on open or when switching user while dialog open.
     if (!prevVisible || id !== prevId) {
       loadProfile()
     }
@@ -197,6 +238,15 @@ watch(
   opacity: 0.8;
 }
 
+.clickable {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.clickable:hover {
+  color: var(--el-color-primary);
+}
+
 .dialog-body {
   padding: 16px 18px 18px;
   background: rgba(255, 255, 255, 0.95);
@@ -223,4 +273,3 @@ watch(
   margin: 14px 0;
 }
 </style>
-

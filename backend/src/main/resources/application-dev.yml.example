@@ -1,16 +1,14 @@
 spring:
   datasource:
-    # 这里设置你本地 MySQL 的连接地址、账号和密码
     url: jdbc:mysql://localhost:3306/fund_together?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root # 修改为你本地的 MySQL 账号
-    password: jiaqi.Guo5946  # 修改为你本地的 MySQL 密码
+    username: root
+    password: your_mysql_password
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
-      # 这里设置你本地 Redis 的地址和端口
       host: localhost
       port: 6379
-      # password: your_redis_password # 如果你的本地 Redis 有密码，请取消注释并在这里设置
+      # password: your_redis_password
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

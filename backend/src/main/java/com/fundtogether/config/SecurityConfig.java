@@ -34,7 +34,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/user/register", "/api/user/login", "/api/user/reset-password", "/api/user/account/alipay/notify", "/api/user/account/alipay/return").permitAll()
-                .requestMatchers("/api/public/**", "/api/comment/project/**", "/api/projects/recommend", "/api/projects/*/rewards", "/api/notices/active").permitAll()
+                .requestMatchers("/api/public/**", "/api/comment/project/**", "/api/projects/recommend", "/api/projects/*/rewards", "/api/notices/active", "/api/follow/status/**", "/api/follow/following/**", "/api/follow/followers/**").permitAll()
+                .requestMatchers("/api/favorite/status/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/api/funding/process-payout/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

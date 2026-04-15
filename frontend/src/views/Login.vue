@@ -206,7 +206,7 @@ const handleResetPassword = async () => {
   align-items: center;
   min-height: 100vh;
   background-color: var(--bg-page);
-  padding: 20px;
+  padding: var(--spacing-3);
   position: relative;
 }
 
@@ -232,12 +232,12 @@ const handleResetPassword = async () => {
 
 .login-illustration {
   flex: 1;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #312E81 100%);
+  background: var(--primary);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: calc(var(--spacing-unit) * 5);
   position: relative;
   overflow: hidden;
 }
@@ -249,7 +249,14 @@ const handleResetPassword = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+  opacity: 0.05;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 20px,
+    rgba(255, 255, 255, 1) 20px,
+    rgba(255, 255, 255, 1) 21px
+  );
 }
 
 .illustration-content {
@@ -260,7 +267,7 @@ const handleResetPassword = async () => {
 
 .illustration-content h1 {
   font-family: var(--font-heading);
-  font-size: 48px;
+  font-size: var(--text-2xl);
   font-weight: 800;
   margin-bottom: 20px;
   line-height: 1.2;
@@ -268,34 +275,34 @@ const handleResetPassword = async () => {
 }
 
 .illustration-content p {
-  font-size: 18px;
+  font-size: var(--text-base);
   line-height: 1.6;
   opacity: 0.9;
 }
 
 .login-form-container {
   flex: 1;
-  padding: 60px;
+  padding: calc(var(--spacing-unit) * 8);
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
 .login-header {
-  margin-bottom: 40px;
+  margin-bottom: calc(var(--spacing-unit) * 5);
 }
 
 .login-header h2 {
   font-family: var(--font-heading);
-  font-size: 32px;
+  font-size: var(--text-xl);
   font-weight: 800;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-1);
 }
 
 .login-header p {
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: var(--text-base);
 }
 
 .login-form {
@@ -307,6 +314,8 @@ const handleResetPassword = async () => {
   background-color: var(--bg-page);
   border: 1px solid var(--border-color);
   box-shadow: none !important;
+  border-radius: var(--radius-sm);
+  transition: border-color 200ms ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out;
 }
 
 .custom-input :deep(.el-input__wrapper.is-focus) {
@@ -325,16 +334,17 @@ const handleResetPassword = async () => {
 .submit-btn {
   width: 100%;
   height: 48px;
-  font-size: 16px;
+  font-size: var(--text-sm);
   font-weight: 700;
   border-radius: var(--radius-md);
   margin-top: 10px;
+  transition: all 200ms ease-out;
 }
 
 .register-link {
   text-align: center;
-  margin-top: 24px;
-  font-size: 15px;
+  margin-top: var(--spacing-3);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -343,6 +353,7 @@ const handleResetPassword = async () => {
   font-weight: 600;
   text-decoration: none;
   margin-left: 4px;
+  transition: text-decoration 200ms ease-out;
 }
 
 .register-link a:hover {
@@ -355,14 +366,14 @@ const handleResetPassword = async () => {
     min-height: auto;
   }
   .login-illustration {
-    padding: 40px 20px;
+    padding: calc(var(--spacing-unit) * 5) var(--spacing-3);
     text-align: center;
   }
   .illustration-content h1 {
-    font-size: 32px;
+    font-size: var(--text-xl);
   }
   .login-form-container {
-    padding: 40px 20px;
+    padding: calc(var(--spacing-unit) * 5) var(--spacing-3);
   }
 }
 </style>

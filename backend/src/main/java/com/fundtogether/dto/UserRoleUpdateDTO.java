@@ -9,5 +9,5 @@ public class UserRoleUpdateDTO {
     private Long userId;
     
     @NotNull(message = "角色不能为空")
-    private Integer role; // 1-普通支持者 2-项目发起人 3-管理员
+    private Integer role;
 }

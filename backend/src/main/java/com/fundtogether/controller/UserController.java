@@ -1,6 +1,7 @@
 package com.fundtogether.controller;
 
 import com.fundtogether.common.Result;
+import com.fundtogether.common.annotation.RateLimit;
 import com.fundtogether.dto.*;
 import com.fundtogether.security.LoginUser;
 import com.fundtogether.entity.UserPaymentMethod;
@@ -46,6 +47,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
+    @RateLimit(permits = 3, seconds = 60, key = "register")
     public Result<?> register(@RequestBody @Valid UserRegisterDTO registerDTO, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return Result.error(bindingResult.getAllErrors().get(0).getDefaultMessage());
@@ -59,6 +61,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
+    @RateLimit(permits = 5, seconds = 30, key = "login")
     public Result<LoginVO> login(@RequestBody @Valid UserLoginDTO loginDTO, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return Result.error(500, bindingResult.getAllErrors().get(0).getDefaultMessage());

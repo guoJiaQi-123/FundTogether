@@ -39,27 +39,40 @@
 
           <template v-else>
             <el-button 
-              v-if="userStore.userInfo?.role === 3" 
+              v-if="isAdmin(userStore.userInfo?.role)" 
               :type="route.path.startsWith('/admin') ? 'primary' : 'text'" 
               class="nav-btn" 
               @click="router.push('/admin')"
             >{{ t('common.admin') }}</el-button>
             <el-button 
-              v-if="userStore.userInfo?.role === 2" 
+              v-if="isSponsor(userStore.userInfo?.role)" 
               :type="route.path.startsWith('/sponsor/projects') ? 'primary' : 'text'" 
               class="nav-btn" 
               @click="router.push('/sponsor/projects')"
             >{{ locale === 'zh' ? '我的项目' : 'My Projects' }}</el-button>
+            <el-button 
+              v-if="isSponsor(userStore.userInfo?.role)" 
+              :type="route.path.startsWith('/user/profile') ? 'primary' : 'text'" 
+              class="nav-btn" 
+              @click="router.push('/user/profile')"
+            >{{ locale === 'zh' ? '账户' : 'Account' }}</el-button>
             <el-button 
               :type="route.path.startsWith('/user/orders') ? 'primary' : 'text'" 
               class="nav-btn" 
               @click="router.push('/user/orders')"
             >{{ locale === 'zh' ? '我的支持' : 'My Support' }}</el-button>
             <el-button 
-              :type="route.path.startsWith('/user/messages') ? 'primary' : 'text'" 
+              :type="route.path.startsWith('/user/favorites') ? 'primary' : 'text'" 
               class="nav-btn" 
-              @click="router.push('/user/messages')"
-            >{{ locale === 'zh' ? '消息' : 'Messages' }}</el-button>
+              @click="router.push('/user/favorites')"
+            >{{ locale === 'zh' ? '收藏' : 'Favorites' }}</el-button>
+            <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+              <el-button 
+                :type="route.path.startsWith('/user/messages') ? 'primary' : 'text'" 
+                class="nav-btn" 
+                @click="router.push('/user/messages')"
+              >{{ locale === 'zh' ? '消息' : 'Messages' }}</el-button>
+            </el-badge>
             <el-button 
               :type="route.path.startsWith('/user/profile') ? 'primary' : 'text'" 
               class="nav-btn" 
@@ -77,12 +90,13 @@
 </template>
 
 <script setup lang="ts">
-import { useUserStore } from '../store/user'
+import { useUserStore, isAdmin, isSponsor } from '../store/user'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElNotification } from 'element-plus'
 import { onMounted, onUnmounted, watch, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowDown } from '@element-plus/icons-vue'
+import { getUnreadCount } from '../api/user'
 
 const { t, locale } = useI18n()
 
@@ -95,6 +109,15 @@ const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
 const isScrolled = ref(false)
+const unreadCount = ref(0)
+
+const fetchUnreadCount = async () => {
+  if (!userStore.token) return
+  try {
+    const res = await getUnreadCount()
+    unreadCount.value = res.data?.count || 0
+  } catch (error) { console.error(error) }
+}
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 20
@@ -109,7 +132,8 @@ const initWebSocket = () => {
   const userId = userStore.userInfo?.id
   if (!userId) return
 
-  ws = new WebSocket(`ws://localhost:8080/ws/${userId}`)
+  const token = localStorage.getItem('token')
+  ws = new WebSocket(`ws://localhost:8080/ws/${userId}?token=${token}`)
 
   ws.onopen = () => {
     console.log('WebSocket connected')
@@ -142,6 +166,7 @@ onMounted(() => {
   window.addEventListener('scroll', handleScroll)
   if (userStore.token) {
     initWebSocket()
+    fetchUnreadCount()
   }
 })
 
@@ -182,24 +207,24 @@ const logout = () => {
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid transparent;
-  transition: all 0.3s ease;
+  transition: all var(--transition-fast);
 }
 
 .app-header.scrolled {
   border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 4px 20px -10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 40px;
-  height: 72px;
+  padding: 0 calc(var(--spacing-unit) * 5);
+  height: 64px;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -208,57 +233,57 @@ const logout = () => {
 
 .logo {
   font-family: var(--font-heading);
-  font-size: 24px;
+  font-size: var(--text-xl);
   font-weight: 800;
   color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-2);
   letter-spacing: -0.02em;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-fast);
   outline: none;
 }
 
 .logo-icon {
-  width: 32px;
-  height: 32px;
-  display: inline-block;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  width: 28px;
+  height: 28px;
+  transition: transform var(--transition-fast);
 }
 
-.logo:hover .logo-icon, .logo:focus .logo-icon {
-  transform: scale(1.1) rotate(-5deg);
+.logo:hover .logo-icon {
+  transform: scale(1.05);
 }
 
-.logo:hover, .logo:focus {
-  opacity: 0.9;
+.logo:hover {
+  opacity: 0.85;
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-1);
 }
 
 .user-greeting {
-  font-size: 14px;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text-secondary);
-  margin-right: 16px;
-  padding-right: 16px;
+  margin-right: var(--spacing-2);
+  padding-right: var(--spacing-2);
   border-right: 1px solid var(--border-color);
 }
 
 .nav-btn {
   border-radius: var(--radius-pill);
-  padding: 8px 16px;
-  margin-right: 4px;
-  transition: all 0.3s ease;
+  padding: 6px 14px;
+  margin-right: 2px;
+  transition: all var(--transition-fast);
+  font-size: var(--text-xs);
 }
 
 .nav-btn.el-button--primary {
-  padding: 8px 20px;
+  padding: 6px 16px;
 }
 
 .app-main {
@@ -269,13 +294,12 @@ const logout = () => {
   flex-direction: column;
 }
 
-/* 响应式适配 */
 @media (max-width: 900px) {
   .header-content {
-    padding: 0 20px;
+    padding: 0 var(--spacing-3);
   }
   .nav-links .el-button {
-    padding: 8px 12px;
+    padding: 6px 10px;
   }
 }
 
@@ -285,8 +309,8 @@ const logout = () => {
   }
   .header-content {
     flex-direction: column;
-    padding: 16px 20px;
-    gap: 16px;
+    padding: var(--spacing-2) var(--spacing-3);
+    gap: var(--spacing-2);
     height: auto;
   }
   .nav-links {

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fundtogether.common.Result;
+import com.fundtogether.common.enums.UserRole;
 import com.fundtogether.entity.FundingLedger;
 import com.fundtogether.entity.Project;
 import com.fundtogether.entity.ProjectPayout;
@@ -57,7 +58,7 @@ public class FundingController {
             wrapper.eq(ProjectPayout::getProjectId, projectId);
         }
         // If not admin, can only see their own projects
-        if (user.getRole() != 3) {
+        if (!UserRole.isAdmin(user.getRole())) {
             wrapper.eq(ProjectPayout::getSponsorId, user.getId());
         }
         wrapper.orderByAsc(ProjectPayout::getStage);
@@ -130,7 +131,7 @@ public class FundingController {
             wrapper.eq(FundingLedger::getProjectId, projectId);
         }
         // If not admin, can only see their own transactions (either as supporter or sponsor)
-        if (user.getRole() != 3) {
+        if (!UserRole.isAdmin(user.getRole())) {
             wrapper.eq(FundingLedger::getUserId, user.getId());
         }
         wrapper.orderByDesc(FundingLedger::getCreatedAt);

@@ -246,7 +246,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   align-items: center;
   min-height: 100vh;
   background-color: var(--bg-page);
-  padding: 20px;
+  padding: var(--spacing-3);
   position: relative;
 }
 
@@ -272,12 +272,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
 .register-illustration {
   flex: 1;
-  background: linear-gradient(135deg, var(--color-accent) 0%, #064E3B 100%);
+  background: var(--secondary-3);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: calc(var(--spacing-unit) * 5);
   position: relative;
   overflow: hidden;
 }
@@ -289,7 +289,14 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+  opacity: 0.05;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 20px,
+    rgba(255, 255, 255, 1) 20px,
+    rgba(255, 255, 255, 1) 21px
+  );
 }
 
 .illustration-content {
@@ -300,7 +307,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
 .illustration-content h1 {
   font-family: var(--font-heading);
-  font-size: 48px;
+  font-size: var(--text-2xl);
   font-weight: 800;
   margin-bottom: 20px;
   line-height: 1.2;
@@ -308,34 +315,34 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 }
 
 .illustration-content p {
-  font-size: 18px;
+  font-size: var(--text-base);
   line-height: 1.6;
   opacity: 0.9;
 }
 
 .register-form-container {
   flex: 1;
-  padding: 60px;
+  padding: calc(var(--spacing-unit) * 8);
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
 .register-header {
-  margin-bottom: 40px;
+  margin-bottom: calc(var(--spacing-unit) * 5);
 }
 
 .register-header h2 {
   font-family: var(--font-heading);
-  font-size: 32px;
+  font-size: var(--text-xl);
   font-weight: 800;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-1);
 }
 
 .register-header p {
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: var(--text-base);
 }
 
 .register-form {
@@ -360,6 +367,8 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   background-color: var(--bg-page);
   border: 1px solid var(--border-color);
   box-shadow: none !important;
+  border-radius: var(--radius-sm);
+  transition: border-color 200ms ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out;
 }
 
 .custom-input :deep(.el-input__wrapper.is-focus) {
@@ -370,7 +379,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
 .code-container {
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-2);
   width: 100%;
 }
 
@@ -381,20 +390,21 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 .submit-btn {
   width: 100%;
   height: 48px;
-  font-size: 16px;
+  font-size: var(--text-sm);
   font-weight: 700;
   border-radius: var(--radius-md);
   margin-top: 10px;
+  transition: all 200ms ease-out;
 }
 
 .agreement-item {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-3);
 }
 
 .login-link {
   text-align: center;
-  margin-top: 24px;
-  font-size: 15px;
+  margin-top: var(--spacing-3);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
@@ -403,6 +413,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   font-weight: 600;
   text-decoration: none;
   margin-left: 4px;
+  transition: text-decoration 200ms ease-out;
 }
 
 .login-link a:hover {
@@ -415,14 +426,14 @@ const submitForm = async (formEl: FormInstance | undefined) => {
     min-height: auto;
   }
   .register-illustration {
-    padding: 40px 20px;
+    padding: calc(var(--spacing-unit) * 5) var(--spacing-3);
     text-align: center;
   }
   .illustration-content h1 {
-    font-size: 32px;
+    font-size: var(--text-xl);
   }
   .register-form-container {
-    padding: 40px 20px;
+    padding: calc(var(--spacing-unit) * 5) var(--spacing-3);
   }
 }
 </style>

@@ -4,15 +4,21 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fundtogether.common.enums.LedgerType;
+import com.fundtogether.common.enums.OrderStatus;
+import com.fundtogether.common.exception.BusinessException;
 import com.fundtogether.dto.SupportOrderCreateDTO;
 import com.fundtogether.entity.Project;
 import com.fundtogether.entity.SupportOrder;
+import com.fundtogether.mapper.ProjectMapper;
 import com.fundtogether.mapper.SupportOrderMapper;
-import com.fundtogether.entity.Project;
+import com.fundtogether.mapper.SysUserMapper;
 import com.fundtogether.entity.SysUser;
 import com.fundtogether.service.ProjectService;
 import com.fundtogether.service.SupportOrderService;
 import com.fundtogether.service.SysUserService;
+import com.fundtogether.service.FundingLedgerService;
+import com.fundtogether.utils.RedisLockUtil;
 import com.fundtogether.vo.SupporterVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +34,6 @@ import java.util.HashMap;
 import java.math.BigDecimal;
 
 import com.fundtogether.entity.FundingLedger;
-import com.fundtogether.service.FundingLedgerService;
 
 @Service
 public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, SupportOrder>
@@ -43,21 +48,43 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
     @Autowired
     private FundingLedgerService fundingLedgerService;
 
+    @Autowired
+    private SysUserMapper sysUserMapper;
+
+    @Autowired
+    private ProjectMapper projectMapper;
+
+    @Autowired
+    private RedisLockUtil redisLockUtil;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void createOrder(SupportOrderCreateDTO dto, Long userId) {
-        Project project = projectService.getProjectDetail(dto.getProjectId());
+        String lockKey = "order:lock:" + userId + ":" + dto.getProjectId();
+        String lockValue = UUID.randomUUID().toString();
 
-        SysUser user = sysUserService.getById(userId);
-        BigDecimal currentBalance = user.getBalance() != null ? user.getBalance() : BigDecimal.ZERO;
-
-        if (currentBalance.compareTo(dto.getAmount()) < 0) {
-            throw new RuntimeException("余额不足，请先充值");
+        boolean locked = redisLockUtil.tryLock(lockKey, lockValue, 10);
+        if (!locked) {
+            throw new BusinessException("操作过于频繁，请稍后再试");
         }
 
-        // Deduct balance
-        user.setBalance(currentBalance.subtract(dto.getAmount()));
-        sysUserService.updateById(user);
+        try {
+            doCreateOrder(dto, userId);
+        } finally {
+            redisLockUtil.unlock(lockKey, lockValue);
+        }
+    }
+
+    private void doCreateOrder(SupportOrderCreateDTO dto, Long userId) {
+        Project project = projectService.getProjectDetail(dto.getProjectId());
+        if (project.getStatus() != 1) {
+            throw new BusinessException("该项目当前不支持投资");
+        }
+
+        int rows = sysUserMapper.deductBalance(userId, dto.getAmount());
+        if (rows == 0) {
+            throw new BusinessException("余额不足，请先充值");
+        }
 
         SupportOrder order = new SupportOrder();
         order.setOrderNo(UUID.randomUUID().toString().replace("-", ""));
@@ -65,29 +92,25 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
         order.setProjectId(dto.getProjectId());
         order.setAmount(dto.getAmount());
         order.setMessage(dto.getMessage());
-        order.setPayChannel("3"); // 3-余额支付
-        // Simulate immediate payment success
-        order.setStatus(1); // 1-已支付
+        order.setPayChannel("3");
+        order.setStatus(OrderStatus.PAID.getCode());
         order.setPayTime(java.time.LocalDateTime.now());
-
         this.save(order);
 
-        // Record payment in funding_ledger
         FundingLedger ledger = new FundingLedger();
         ledger.setProjectId(project.getId());
         ledger.setOrderId(order.getId());
         ledger.setUserId(userId);
         ledger.setAmount(order.getAmount());
-        ledger.setType(1); // 1-用户支付
-        ledger.setStatus(1); // 1-成功
-        ledger.setRemark(String.format("业务场景: 支持项目[%s], 资金流向: 用户[%s] -> 平台 -> 项目[%s]", project.getTitle(),
-                user.getNickname(), project.getTitle()));
+        ledger.setType(LedgerType.USER_PAYMENT.getCode());
+        ledger.setStatus(1);
+        SysUser user = sysUserService.getById(userId);
+        String nickname = user != null ? user.getNickname() : "用户";
+        ledger.setRemark(String.format("业务场景: 支持项目[%s], 资金流向: 用户[%s] -> 平台 -> 项目[%s]", project.getTitle(), nickname,
+                project.getTitle()));
         fundingLedgerService.save(ledger);
 
-        // Update project stats
-        project.setCurrentAmount(project.getCurrentAmount().add(dto.getAmount()));
-        project.setSupporterCount(project.getSupporterCount() + 1);
-        projectService.updateById(project);
+        projectMapper.incrementFunding(dto.getProjectId(), dto.getAmount());
     }
 
     @Override
@@ -111,16 +134,16 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
     public IPage<SupporterVO> getProjectSupporters(Long projectId, Long sponsorId, Integer current, Integer size) {
         Project project = projectService.getById(projectId);
         if (project == null) {
-            throw new RuntimeException("项目不存在");
+            throw new BusinessException("项目不存在");
         }
         if (!project.getSponsorId().equals(sponsorId)) {
-            throw new RuntimeException("无权查看他人项目的支持者");
+            throw new BusinessException("无权查看他人项目的支持者");
         }
 
         Page<SupportOrder> page = new Page<>(current, size);
         LambdaQueryWrapper<SupportOrder> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SupportOrder::getProjectId, projectId);
-        wrapper.eq(SupportOrder::getStatus, 1); // 1-已支付
+        wrapper.eq(SupportOrder::getStatus, OrderStatus.PAID.getCode());
         wrapper.orderByDesc(SupportOrder::getCreatedAt);
         IPage<SupportOrder> orderPage = this.page(page, wrapper);
 
@@ -144,7 +167,7 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
     public Map<String, Object> getMyStats(Long userId) {
         LambdaQueryWrapper<SupportOrder> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SupportOrder::getUserId, userId);
-        wrapper.eq(SupportOrder::getStatus, 1); // 1-已支付
+        wrapper.eq(SupportOrder::getStatus, OrderStatus.PAID.getCode());
 
         List<SupportOrder> orders = this.list(wrapper);
 

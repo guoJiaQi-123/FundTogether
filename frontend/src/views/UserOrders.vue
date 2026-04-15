@@ -1,151 +1,109 @@
 <template>
-  <div class="user-container">
-    <main class="main-content">
-      <div class="page-header">
-        <h2>我的支持</h2>
+  <div class="orders-page">
+    <div class="page-header">
+      <h2>我的支持</h2>
+      <p class="header-desc">追踪你的每一笔支持与资金流向</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card stat-card--primary">
+        <div class="stat-card-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="stat-card-info">
+          <span class="stat-card-value">¥{{ stats.totalAmount || 0 }}</span>
+          <span class="stat-card-label">累计支持金额</span>
+        </div>
       </div>
+      <div class="stat-card stat-card--accent">
+        <div class="stat-card-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        </div>
+        <div class="stat-card-info">
+          <span class="stat-card-value">{{ stats.projectCount || 0 }}</span>
+          <span class="stat-card-label">支持项目数</span>
+        </div>
+      </div>
+    </div>
 
-      <el-row :gutter="20" class="stats-row" style="margin-bottom: 20px;">
-        <el-col :span="12">
-          <el-card shadow="hover">
-            <div class="stat-box">
-              <div class="stat-title">累计支持金额</div>
-              <div class="stat-value highlight">￥{{ stats.totalAmount || 0 }}</div>
+    <el-card class="content-card">
+      <el-tabs v-model="activeTab" class="modern-tabs">
+        <el-tab-pane name="orders">
+          <template #label>
+            <span class="tab-label">支持订单</span>
+          </template>
+          <div v-loading="loading">
+            <div v-if="orders.length === 0 && !loading" class="empty-state">
+              <p>暂无支持记录</p>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="12">
-          <el-card shadow="hover">
-            <div class="stat-box">
-              <div class="stat-title">支持项目数</div>
-              <div class="stat-value">{{ stats.projectCount || 0 }}</div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-      
-      <el-card>
-        <el-tabs v-model="activeTab">
-          <el-tab-pane label="支持订单" name="orders">
-            <el-table :data="orders" style="width: 100%" v-loading="loading">
-              <el-table-column prop="orderNo" label="订单号" width="200" />
-              <el-table-column label="支持项目" min-width="150" show-overflow-tooltip>
-                <template #default="{ row }">
-                  <el-link type="primary" :underline="false" @click="router.push(`/projects/${row.projectId}`)">
-                    {{ row.projectName || `项目 ${row.projectId}` }}
-                  </el-link>
-                </template>
-              </el-table-column>
-              <el-table-column prop="amount" label="支持金额" width="120">
-                <template #default="{ row }">
-                  <span style="color: #f56c6c; font-weight: bold;">￥{{ row.amount }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="message" label="留言" show-overflow-tooltip />
-              <el-table-column prop="status" label="状态" width="100">
-                <template #default="{ row }">
-                  <el-tag :type="row.status === 1 ? 'success' : (row.status === 0 ? 'warning' : (row.status === 3 ? 'danger' : 'info'))">
-                    {{ row.status === 1 ? '已支付' : (row.status === 0 ? '待支付' : (row.status === 3 ? '已退款' : '已取消')) }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="payChannel" label="支付渠道" width="120">
-                <template #default="{ row }">
-                  {{ row.payChannel === '3' ? '余额支付' : (row.payChannel === '2' ? '支付宝' : (row.payChannel === '1' ? '微信支付' : row.payChannel)) }}
-                </template>
-              </el-table-column>
-              <el-table-column prop="deliveryStatus" label="发货状态" width="120">
-                <template #default="{ row }">
-                  <el-tag v-if="row.status === 1" :type="row.deliveryStatus === 1 ? 'success' : 'warning'">
-                    {{ row.deliveryStatus === 1 ? '已发货' : '待发货' }}
-                  </el-tag>
-                  <span v-else>-</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="expressNo" label="物流单号" width="150">
-                <template #default="{ row }">
-                  <span v-if="row.deliveryStatus === 1 && row.expressNo" style="color: #67c23a; font-size: 13px;">{{ row.expressNo }}</span>
-                  <span v-else>-</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="createdAt" label="支持时间" width="180">
-                <template #default="{ row }">
-                  {{ new Date(row.createdAt).toLocaleString() }}
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="120" fixed="right">
-                <template #default="{ row }">
-                  <el-button type="primary" link @click="router.push(`/projects/${row.projectId}`)">
-                    查看项目
-                  </el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-
-            <div class="pagination">
-              <el-pagination
-                background
-                layout="prev, pager, next"
-                :total="total"
-                :page-size="pageSize"
-                v-model:current-page="currentPage"
-                @current-change="fetchOrders"
-              />
-            </div>
-          </el-tab-pane>
-
-          <el-tab-pane label="资金流水" name="ledgers">
-            <el-table :data="ledgers" style="width: 100%" v-loading="loadingLedgers">
-              <el-table-column prop="id" label="流水号" width="100" />
-              <el-table-column label="关联项目" min-width="150" show-overflow-tooltip>
-                <template #default="{ row }">
-                  <el-link type="primary" :underline="false" @click="router.push(`/projects/${row.projectId}`)">
-                    {{ row.projectName || `项目 ${row.projectId}` }}
-                  </el-link>
-                </template>
-              </el-table-column>
-              <el-table-column label="资金流向" width="150">
-                <template #default="scope">
-                  <el-tag v-if="scope.row.type === 1" type="success" effect="dark">支出 (支持项目)</el-tag>
-                  <el-tag v-else-if="scope.row.type === 2" type="danger" effect="dark">收入 (平台退款)</el-tag>
-                  <el-tag v-else-if="scope.row.type === 3" type="warning" effect="dark">收入 (阶段拨付)</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="变动金额" width="150">
-                <template #default="scope">
-                  <span :style="{ color: scope.row.type === 2 || scope.row.type === 3 ? '#67C23A' : '#F56C6C', fontWeight: 'bold', fontSize: '16px' }">
-                    {{ scope.row.type === 2 || scope.row.type === 3 ? '+' : '-' }} ￥{{ scope.row.amount }}
-                  </span>
-                </template>
-              </el-table-column>
-              <el-table-column label="财务溯源详情 (业务场景与流向)" min-width="350">
-                <template #default="scope">
-                  <div class="trace-detail">
-                    <el-icon class="trace-icon"><Tickets /></el-icon>
-                    <span class="trace-text">{{ scope.row.remark }}</span>
+            <div class="order-list" v-else>
+              <div v-for="order in orders" :key="order.id" class="order-card" @click="router.push(`/projects/${order.projectId}`)">
+                <div class="order-main">
+                  <div class="order-top">
+                    <span class="order-project">{{ order.projectName || `项目 ${order.projectId}` }}</span>
+                    <el-tag size="small" :type="order.status === 1 ? 'success' : (order.status === 0 ? 'warning' : (order.status === 3 ? 'danger' : 'info'))">
+                      {{ order.status === 1 ? '已支付' : (order.status === 0 ? '待支付' : (order.status === 3 ? '已退款' : '已取消')) }}
+                    </el-tag>
                   </div>
-                </template>
-              </el-table-column>
-              <el-table-column prop="createdAt" label="时间" width="180">
-                <template #default="scope">
-                  {{ new Date(scope.row.createdAt).toLocaleString() }}
-                </template>
-              </el-table-column>
-            </el-table>
-            <div class="pagination">
-              <el-pagination
-                background
-                layout="prev, pager, next"
-                :total="ledgerTotal"
-                :page-size="ledgerSize"
-                v-model:current-page="ledgerPage"
-                @current-change="fetchLedgers"
-              />
+                  <div class="order-meta">
+                    <span class="order-amount">¥{{ order.amount }}</span>
+                    <span class="order-channel">{{ order.payChannel === '3' ? '余额支付' : (order.payChannel === '2' ? '支付宝' : '微信支付') }}</span>
+                    <span class="order-time">{{ new Date(order.createdAt).toLocaleDateString() }}</span>
+                  </div>
+                  <div class="order-extra" v-if="order.status === 1">
+                    <el-tag v-if="order.deliveryStatus === 1" size="small" type="success" effect="plain">已发货 {{ order.expressNo }}</el-tag>
+                    <el-tag v-else size="small" type="warning" effect="plain">待发货</el-tag>
+                  </div>
+                </div>
+                <div class="order-arrow">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+              </div>
             </div>
-          </el-tab-pane>
-        </el-tabs>
-      </el-card>
-    </main>
+          </div>
+          <div class="pagination" v-if="total > 10">
+            <el-pagination v-model:current-page="currentPage" :page-size="pageSize" layout="prev, pager, next" :total="total" @current-change="fetchOrders" small />
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane name="ledgers">
+          <template #label>
+            <span class="tab-label">资金流水</span>
+          </template>
+          <div v-loading="loadingLedgers">
+            <div v-if="ledgers.length === 0 && !loadingLedgers" class="empty-state">
+              <p>暂无流水记录</p>
+            </div>
+            <div class="ledger-timeline" v-else>
+              <div v-for="ledger in ledgers" :key="ledger.id" class="ledger-item">
+                <div class="ledger-dot" :class="{ 'dot-in': ledger.type === 2 || ledger.type === 3, 'dot-out': ledger.type === 1 }"></div>
+                <div class="ledger-content">
+                  <div class="ledger-header">
+                    <span class="ledger-type">
+                      <el-tag size="small" :type="ledger.type === 1 ? 'danger' : 'success'" effect="plain">
+                        {{ ledger.type === 1 ? '支出' : '收入' }}
+                      </el-tag>
+                      <span class="ledger-project" v-if="ledger.projectName" @click.stop="router.push(`/projects/${ledger.projectId}`)">{{ ledger.projectName }}</span>
+                    </span>
+                    <span class="ledger-amount" :class="{ 'amount-in': ledger.type === 2 || ledger.type === 3, 'amount-out': ledger.type === 1 }">
+                      {{ ledger.type === 2 || ledger.type === 3 ? '+' : '-' }}¥{{ ledger.amount }}
+                    </span>
+                  </div>
+                  <div class="ledger-remark">
+                    <el-icon class="trace-icon"><Tickets /></el-icon>
+                    {{ ledger.remark }}
+                  </div>
+                  <div class="ledger-time">{{ new Date(ledger.createdAt).toLocaleString() }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pagination" v-if="ledgerTotal > 10">
+            <el-pagination v-model:current-page="ledgerPage" :page-size="ledgerSize" layout="prev, pager, next" :total="ledgerTotal" @current-change="fetchLedgers" small />
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
   </div>
 </template>
 
@@ -221,60 +179,274 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-container {
-  min-height: 100vh;
-  background-color: #f5f7fa;
-}
-
-.main-content {
+.orders-page {
   max-width: 1200px;
-  margin: 30px auto;
+  margin: 0 auto;
+  padding: var(--spacing-5) var(--spacing-4);
 }
-
 .page-header {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-4);
 }
-
-.pagination {
+.page-header h2 {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.header-desc {
+  margin: var(--spacing-1) 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+}
+.stat-card {
   display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-lg);
+  color: white;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+.stat-card--primary {
+  background: var(--primary);
+}
+.stat-card--accent {
+  background: var(--secondary-3);
+}
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
   justify-content: center;
-  margin-top: 20px;
+  flex-shrink: 0;
 }
-
-.stat-box {
+.stat-card-value {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 800;
+  display: block;
+  line-height: 1.2;
+}
+.stat-card-label {
+  font-size: var(--text-xs);
+  opacity: 0.85;
+  display: block;
+  margin-top: 2px;
+}
+.content-card {
+  border-radius: var(--radius-xl);
+  border: none;
+  box-shadow: var(--shadow-md);
+}
+.content-card :deep(.el-card__body) {
+  padding: var(--spacing-4);
+}
+.modern-tabs :deep(.el-tabs__nav-wrap::after) {
+  height: 1px;
+  background: var(--border-light);
+}
+.tab-label {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+.empty-state {
   text-align: center;
-  padding: 20px;
+  padding: var(--spacing-5) var(--spacing-4);
+  color: var(--text-tertiary);
 }
-.stat-title {
-  font-size: 16px;
-  color: #909399;
-  margin-bottom: 10px;
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
 }
-.stat-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #303133;
+.order-card {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
-.stat-value.highlight {
-  color: #f56c6c;
+.order-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
 }
-.trace-detail {
+.order-main {
+  flex: 1;
+  min-width: 0;
+}
+.order-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-1);
+}
+.order-project {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+.order-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-1);
+}
+.order-amount {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: var(--text-base);
+  color: var(--color-danger);
+}
+.order-channel {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  background: var(--gray-100);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+.order-time {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+.order-extra {
+  margin-top: var(--spacing-1);
+}
+.order-arrow {
+  flex-shrink: 0;
+  margin-left: var(--spacing-2);
+  transition: transform var(--transition-fast);
+}
+.order-card:hover .order-arrow {
+  transform: translateX(4px);
+}
+.ledger-timeline {
+  position: relative;
+  padding-left: var(--spacing-4);
+}
+.ledger-timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--border-color);
+}
+.ledger-item {
+  position: relative;
+  padding: var(--spacing-2) 0 var(--spacing-3);
+  display: flex;
+  gap: var(--spacing-3);
+}
+.ledger-dot {
+  position: absolute;
+  left: calc(-1 * var(--spacing-4) + 1px);
+  top: 14px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid var(--bg-surface);
+  z-index: 1;
+}
+.dot-in {
+  background: var(--color-success);
+}
+.dot-out {
+  background: var(--color-danger);
+}
+.ledger-content {
+  flex: 1;
+  min-width: 0;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2) var(--spacing-3);
+}
+.ledger-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-1);
+}
+.ledger-type {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+.ledger-project {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.ledger-project:hover {
+  text-decoration: underline;
+}
+.ledger-amount {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  font-weight: 800;
+}
+.amount-in {
+  color: var(--color-success);
+}
+.amount-out {
+  color: var(--color-danger);
+}
+.ledger-remark {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--el-fill-color-light);
-  border-radius: 6px;
-  border-left: 3px solid var(--el-color-primary);
+  gap: var(--spacing-1);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-1);
 }
 .trace-icon {
-  margin-top: 3px;
-  color: var(--el-color-primary);
-  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-primary);
 }
-.trace-text {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--el-text-color-regular);
+.ledger-time {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.pagination {
+  margin-top: var(--spacing-4);
+  display: flex;
+  justify-content: center;
+}
+@media (max-width: 768px) {
+  .orders-page {
+    padding: var(--spacing-3) var(--spacing-2);
+  }
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+  .page-header h2 {
+    font-size: var(--text-xl);
+  }
 }
 </style>

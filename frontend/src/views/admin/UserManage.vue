@@ -10,11 +10,11 @@
           <el-table-column prop="id" label="ID" width="60" />
           <el-table-column prop="account" label="账号" min-width="120" />
           <el-table-column prop="nickname" label="昵称" min-width="120" />
-          <el-table-column prop="role" label="角色" width="110">
+          <el-table-column prop="role" label="角色" min-width="160">
             <template #default="{ row }">
-              <el-tag :type="getRoleTagType(row.role)" size="small">
-                {{ getRoleName(row.role) }}
-              </el-tag>
+              <el-tag v-if="hasRole(row.role, UserRole.USER)" type="info" size="small" style="margin-right:4px">用户</el-tag>
+              <el-tag v-if="hasRole(row.role, UserRole.SPONSOR)" type="warning" size="small" style="margin-right:4px">发起人</el-tag>
+              <el-tag v-if="hasRole(row.role, UserRole.ADMIN)" type="danger" size="small">管理员</el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="status" label="状态" width="80">
@@ -71,11 +71,11 @@
           <el-input v-model="currentUser.account" disabled />
         </el-form-item>
         <el-form-item label="角色分配">
-          <el-select v-model="roleForm.role" placeholder="请选择角色" style="width: 100%">
-            <el-option label="普通支持者" :value="1" />
-            <el-option label="项目发起人" :value="2" />
-            <el-option label="系统管理员" :value="3" />
-          </el-select>
+          <el-checkbox-group v-model="roleForm.roles">
+            <el-checkbox :value="1">普通用户</el-checkbox>
+            <el-checkbox :value="2">项目发起人</el-checkbox>
+            <el-checkbox :value="4">管理员</el-checkbox>
+          </el-checkbox-group>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -91,6 +91,7 @@ import { ref, onMounted } from 'vue'
 import request from '../../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Lock, Unlock } from '@element-plus/icons-vue'
+import { hasRole, UserRole } from '../../store/user'
 
 const users = ref<any[]>([])
 const loading = ref(false)
@@ -103,25 +104,20 @@ const submitting = ref(false)
 const currentUser = ref<any>({})
 const roleForm = ref({
   userId: 0,
-  role: 1
+  roles: [] as number[]
 })
 
-const getRoleName = (role: number) => {
-  switch (role) {
-    case 1: return '普通支持者'
-    case 2: return '项目发起人'
-    case 3: return '系统管理员'
-    default: return '未知'
-  }
+const maskFromRoles = (roles: number[]): number => {
+  return roles.reduce((acc, r) => acc | r, 0)
 }
 
-const getRoleTagType = (role: number) => {
-  switch (role) {
-    case 1: return 'info'
-    case 2: return 'warning'
-    case 3: return 'danger'
-    default: return ''
-  }
+const rolesFromMask = (mask: number): number[] => {
+  const result: number[] = []
+  if (mask & UserRole.USER) result.push(UserRole.USER)
+  if (mask & UserRole.SPONSOR) result.push(UserRole.SPONSOR)
+  if (mask & UserRole.ADMIN) result.push(UserRole.ADMIN)
+  if (result.length === 0) result.push(UserRole.USER)
+  return result
 }
 
 const fetchUsers = async () => {
@@ -143,7 +139,7 @@ const openRoleDialog = (row: any) => {
   currentUser.value = row
   roleForm.value = {
     userId: row.id,
-    role: row.role
+    roles: rolesFromMask(row.role)
   }
   roleDialogVisible.value = true
 }
@@ -151,7 +147,8 @@ const openRoleDialog = (row: any) => {
 const submitRoleChange = async () => {
   submitting.value = true
   try {
-    await request.post('/admin/user/role', roleForm.value)
+    const roleMask = maskFromRoles(roleForm.value.roles)
+    await request.post('/admin/user/role', { userId: roleForm.value.userId, role: roleMask })
     ElMessage.success('角色修改成功')
     roleDialogVisible.value = false
     fetchUsers()

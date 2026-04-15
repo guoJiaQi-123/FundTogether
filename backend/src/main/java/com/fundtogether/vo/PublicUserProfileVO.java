@@ -22,5 +22,7 @@ public class PublicUserProfileVO {
     private String company;
     private String location;
     private LocalDateTime createdAt;
+    private Long followingCount;
+    private Long followerCount;
 }
 

@@ -50,6 +50,9 @@ public class Project {
     @TableField(exist = false)
     private String sponsorName;
 
+    @TableField(exist = false)
+    private String sponsorAvatar;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
     

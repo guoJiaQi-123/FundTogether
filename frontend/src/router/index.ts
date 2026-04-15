@@ -70,6 +70,16 @@ const routes: Array<RouteRecordRaw> = [
             path: 'user-levels',
             name: 'AdminUserLevels',
             component: () => import('../views/admin/UserLevelManage.vue')
+          },
+          {
+            path: 'withdrawals',
+            name: 'AdminWithdrawals',
+            component: () => import('../views/admin/WithdrawalManage.vue')
+          },
+          {
+            path: 'reports',
+            name: 'AdminReports',
+            component: () => import('../views/admin/ReportManage.vue')
           }
         ]
       },
@@ -92,6 +102,15 @@ const routes: Array<RouteRecordRaw> = [
         path: 'user/messages',
         name: 'UserMessages',
         component: () => import('../views/UserMessages.vue')
+      },
+      {
+        path: 'user/favorites',
+        name: 'UserFavorites',
+        component: () => import('../views/UserFavorites.vue')
+      },
+      {
+        path: 'user/withdrawal',
+        redirect: '/user/profile'
       },
       {
         path: 'users/:id',

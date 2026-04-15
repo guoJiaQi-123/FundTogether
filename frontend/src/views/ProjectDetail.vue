@@ -10,6 +10,15 @@
           <h1 class="title">{{ project.title }}</h1>
           <p class="summary">{{ project.summary }}</p>
           
+          <div class="sponsor-section" @click="openUserProfile(project.sponsorId)">
+            <el-avatar :size="36" :src="project.sponsorAvatar || defaultAvatar" class="sponsor-avatar" />
+            <div class="sponsor-detail">
+              <span class="sponsor-name">{{ project.sponsorName || '未知用户' }}</span>
+              <span class="sponsor-label">项目发起人</span>
+            </div>
+            <el-icon class="sponsor-arrow"><ArrowRight /></el-icon>
+          </div>
+          
           <div class="stats-box">
             <div class="stat-row">
               <span class="label">已筹金额</span>
@@ -62,6 +71,23 @@
             >
               {{ project.status === 1 ? '立即支持' : '不在筹款中' }}
             </el-button>
+            <div class="action-extra">
+              <el-button 
+                :type="isFavorited ? 'warning' : 'default'" 
+                @click="toggleFavorite"
+                :icon="isFavorited ? 'StarFilled' : 'Star'"
+              >
+                {{ isFavorited ? '已收藏' : '收藏' }}
+              </el-button>
+              <el-button 
+                type="danger" 
+                plain 
+                @click="showReportDialog = true"
+                :icon="'Warning'"
+              >
+                举报
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -208,7 +234,7 @@
           <el-input-number v-model="supportForm.amount" :min="1" :precision="2" :step="10" />
         </el-form-item>
         <el-form-item label="留言寄语">
-          <el-input v-model="supportForm.message" type="textarea" rows="3" placeholder="给发起人留个言吧~" />
+          <el-input v-model="supportForm.message" type="textarea" :rows="3" placeholder="给发起人留个言吧~" />
         </el-form-item>
         <el-form-item label="支付方式">
           <el-radio-group v-model="supportForm.payChannel">
@@ -221,6 +247,23 @@
         <el-button type="primary" @click="submitSupport" :loading="submitting">确认支付</el-button>
       </template>
     </el-dialog>
+
+    <UserProfilePreviewDialog
+      v-model="showUserProfile"
+      :user-id="selectedUserId"
+    />
+
+    <el-dialog v-model="showReportDialog" title="举报项目" width="500px">
+      <el-form :model="reportForm" label-width="80px">
+        <el-form-item label="举报原因">
+          <el-input v-model="reportForm.reason" type="textarea" :rows="4" placeholder="请描述举报原因..." maxlength="500" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showReportDialog = false">取消</el-button>
+        <el-button type="danger" @click="submitReport" :loading="submittingReport">提交举报</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -229,8 +272,11 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Star, ChatDotRound, Calendar } from '@element-plus/icons-vue'
+import { Star, ChatDotRound, Calendar, ArrowRight } from '@element-plus/icons-vue'
 import { useUserStore } from '../store/user'
+import { addFavorite, removeFavorite, checkFavorite, submitReport as submitReportApi } from '../api/user'
+import UserProfilePreviewDialog from '../components/UserProfilePreviewDialog.vue'
+import defaultAvatar from '../assets/default-avatar.svg'
 import { init, use, graphic } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
@@ -248,6 +294,15 @@ const hasChartData = ref(false)
 const loading = ref(false)
 const activeTab = ref('detail')
 
+const showUserProfile = ref(false)
+const selectedUserId = ref<number | null>(null)
+
+const openUserProfile = (userId: number) => {
+  if (!userId) return
+  selectedUserId.value = userId
+  showUserProfile.value = true
+}
+
 const showSupportDialog = ref(false)
 const submitting = ref(false)
 const supportForm = ref({
@@ -255,6 +310,60 @@ const supportForm = ref({
   message: '',
   payChannel: '3'
 })
+
+const isFavorited = ref(false)
+const showReportDialog = ref(false)
+const submittingReport = ref(false)
+const reportForm = ref({ reason: '' })
+
+const toggleFavorite = async () => {
+  if (!userStore.token) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  try {
+    if (isFavorited.value) {
+      await removeFavorite(Number(route.params.id))
+      isFavorited.value = false
+      ElMessage.success('已取消收藏')
+    } else {
+      await addFavorite(Number(route.params.id))
+      isFavorited.value = true
+      ElMessage.success('收藏成功')
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const checkFavoriteStatus = async () => {
+  if (!userStore.token || !route.params.id) return
+  try {
+    const res = await checkFavorite(Number(route.params.id))
+    isFavorited.value = res.data?.favorited || false
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const submitReport = async () => {
+  if (!reportForm.value.reason.trim()) {
+    ElMessage.warning('请填写举报原因')
+    return
+  }
+  submittingReport.value = true
+  try {
+    await submitReportApi(Number(route.params.id), reportForm.value.reason)
+    ElMessage.success('举报已提交，我们会尽快处理')
+    showReportDialog.value = false
+    reportForm.value.reason = ''
+  } catch (error) {
+    console.error(error)
+  } finally {
+    submittingReport.value = false
+  }
+}
 
 // Rewards related
 const rewards = ref<any[]>([])
@@ -550,6 +659,7 @@ onMounted(() => {
   fetchComments()
   fetchUpdates()
   fetchRewards()
+  checkFavoriteStatus()
 })
 
 onBeforeUnmount(() => {
@@ -563,178 +673,152 @@ onBeforeUnmount(() => {
 .detail-container {
   min-height: 100vh;
   background-color: var(--bg-page);
-  padding-bottom: 60px;
+  padding-bottom: calc(var(--spacing-unit) * 8);
 }
-
 .funding-progress-section {
   background: var(--bg-surface);
-  padding: 40px;
+  padding: calc(var(--spacing-unit) * 5);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  margin-bottom: 40px;
+  margin-bottom: calc(var(--spacing-unit) * 5);
 }
-
 .funding-progress-section .section-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: var(--spacing-4);
 }
-
 .funding-progress-section .section-header h2 {
   font-family: var(--font-heading);
-  font-size: 28px;
+  font-size: var(--text-xl);
   color: var(--text-primary);
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--spacing-1) 0;
   font-weight: 800;
 }
-
 .funding-progress-section .section-header p {
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: var(--text-base);
   margin: 0;
 }
-
 .funding-chart-container {
   width: 100%;
   height: 350px;
 }
-
 .funding-chart {
   width: 100%;
   height: 100%;
 }
-
-/* Rewards Styles */
 .rewards-section {
-  padding: 32px 0;
+  padding: var(--spacing-4) 0;
 }
-
 .rewards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+  gap: var(--spacing-3);
 }
-
 .reward-card {
   height: 100%;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border-color) !important;
+  transition: all var(--transition-fast);
 }
-
 .reward-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-3);
 }
-
 .reward-amount {
   font-family: var(--font-heading);
-  font-size: 32px;
+  font-size: var(--text-xl);
   font-weight: 800;
   color: var(--color-primary);
 }
-
 .reward-limit {
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-warning);
-  background: #FEF3C7;
+  background: hsl(38, 92%, 95%);
   padding: 4px 12px;
   border-radius: var(--radius-pill);
 }
-
 .reward-title {
   font-family: var(--font-heading);
-  font-size: 18px;
-  margin: 0 0 12px 0;
+  font-size: var(--text-base);
+  margin: 0 0 var(--spacing-2) 0;
   color: var(--text-primary);
 }
-
 .reward-content {
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: var(--text-sm);
   line-height: 1.6;
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-3);
   flex: 1;
 }
-
 .reward-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: auto;
-  padding-top: 20px;
+  padding-top: var(--spacing-3);
   border-top: 1px dashed var(--border-color);
 }
-
 .reward-time {
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text-tertiary);
 }
-
-/* Updates Styles */
 .updates-section {
-  padding: 32px 0;
+  padding: var(--spacing-4) 0;
   min-height: 200px;
 }
-
 .update-item {
-  padding: 24px;
+  padding: var(--spacing-3);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-3);
   background: var(--bg-surface);
+  transition: all var(--transition-fast);
 }
-
 .update-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-2);
 }
-
 .update-title {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 20px;
+  font-size: var(--text-base);
   color: var(--text-primary);
 }
-
 .update-time {
   color: var(--text-tertiary);
-  font-size: 14px;
+  font-size: var(--text-xs);
   font-weight: 500;
 }
-
 .update-content {
   color: var(--text-secondary);
   line-height: 1.8;
-  font-size: 16px;
+  font-size: var(--text-base);
   white-space: pre-wrap;
 }
-
 .main-content {
   max-width: 1400px;
-  margin: 40px auto;
-  padding: 0 32px;
+  margin: calc(var(--spacing-unit) * 5) auto;
+  padding: 0 var(--spacing-4);
 }
-
 .project-header {
   display: flex;
-  gap: 48px;
+  gap: calc(var(--spacing-unit) * 6);
   background: var(--bg-surface);
-  padding: 40px;
+  padding: calc(var(--spacing-unit) * 5);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  margin-bottom: 40px;
+  margin-bottom: calc(var(--spacing-unit) * 5);
 }
-
 .media-section {
   flex: 0 0 600px;
 }
-
 .main-media {
   width: 100%;
   height: 440px;
@@ -742,254 +826,260 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
-
 .info-section {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
-
 .title {
-  margin: 0 0 16px 0;
+  margin: 0 0 var(--spacing-2) 0;
   font-family: var(--font-heading);
-  font-size: 40px;
+  font-size: var(--text-2xl);
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text-primary);
   line-height: 1.2;
 }
-
 .summary {
   color: var(--text-secondary);
-  font-size: 18px;
+  font-size: var(--text-base);
   line-height: 1.6;
-  margin-bottom: 32px;
+  margin-bottom: var(--spacing-3);
 }
-
+.sponsor-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2);
+  background: var(--bg-page);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-3);
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.sponsor-avatar {
+  --el-avatar-bg-color: transparent;
+  flex-shrink: 0;
+}
+.sponsor-section:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+.sponsor-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sponsor-section .sponsor-name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.sponsor-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.sponsor-arrow {
+  color: var(--text-tertiary);
+  font-size: 16px;
+}
 .stats-box {
   background: var(--bg-page);
-  padding: 24px;
+  padding: var(--spacing-3);
   border-radius: var(--radius-lg);
-  margin-bottom: 32px;
+  margin-bottom: var(--spacing-4);
   border: 1px solid var(--border-color);
 }
-
 .time-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background-color: #f4f4f5;
-  border-radius: 6px;
-  color: #606266;
-  font-size: 14px;
-  margin-bottom: 20px;
+  gap: var(--spacing-1);
+  padding: var(--spacing-2);
+  background-color: var(--gray-100);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  margin-bottom: var(--spacing-3);
 }
-
 .highlight-time {
-  color: #f56c6c;
+  color: var(--color-danger);
   font-weight: bold;
-  font-size: 18px;
+  font-size: var(--text-base);
   margin: 0 4px;
 }
-
 .time-range {
-  color: #909399;
+  color: var(--text-tertiary);
   font-size: 12px;
-  margin-left: 8px;
+  margin-left: var(--spacing-1);
 }
-
 .status-banner {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-3);
 }
-
 .stat-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-2);
 }
-
 .stat-row:last-child {
   margin-bottom: 0;
 }
-
 .stat-row .label {
   color: var(--text-secondary);
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--text-sm);
 }
-
 .stat-row .value {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 18px;
+  font-size: var(--text-base);
   color: var(--text-primary);
 }
-
 .stat-row .highlight {
   color: var(--color-primary);
-  font-size: 32px;
+  font-size: var(--text-xl);
   font-weight: 800;
 }
-
 .progress-section {
-  margin-bottom: 40px;
+  margin-bottom: calc(var(--spacing-unit) * 5);
 }
-
 .action-section {
   margin-top: auto;
 }
-
 .support-btn {
   width: 100%;
-  height: 60px;
-  font-size: 20px;
+  height: 56px;
+  font-size: var(--text-base);
   font-weight: 700;
   border-radius: var(--radius-md);
   letter-spacing: 0.02em;
+  transition: all var(--transition-fast);
 }
-
+.action-extra {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-2);
+}
+.action-extra .el-button {
+  flex: 1;
+}
 .project-content {
   background: var(--bg-surface);
-  padding: 40px;
+  padding: calc(var(--spacing-unit) * 5);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
 }
-
 .html-content {
   line-height: 1.8;
-  font-size: 16px;
+  font-size: var(--text-base);
   color: var(--text-primary);
 }
 .html-content img {
   max-width: 100%;
   border-radius: var(--radius-md);
-  margin: 24px 0;
+  margin: var(--spacing-3) 0;
 }
-
-/* Comment Styles */
 .comment-section {
-  padding: 32px 0;
+  padding: var(--spacing-4) 0;
 }
-
 .comment-input {
-  margin-bottom: 40px;
+  margin-bottom: calc(var(--spacing-unit) * 5);
 }
-
 .comment-action {
-  margin-top: 16px;
+  margin-top: var(--spacing-2);
   text-align: right;
 }
-
 .login-tip {
   text-align: center;
-  padding: 32px;
+  padding: var(--spacing-4);
   background: var(--bg-page);
   border-radius: var(--radius-lg);
-  margin-bottom: 40px;
+  margin-bottom: calc(var(--spacing-unit) * 5);
   color: var(--text-secondary);
   font-weight: 500;
 }
-
 .comment-list {
   min-height: 200px;
 }
-
 .comment-item {
-  padding: 24px 0;
+  padding: var(--spacing-3) 0;
   border-bottom: 1px solid var(--border-color);
 }
-
 .comment-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-2);
 }
-
 .comment-user {
   font-weight: 700;
   color: var(--text-primary);
 }
-
 .comment-time {
   color: var(--text-tertiary);
-  font-size: 13px;
+  font-size: var(--text-xs);
 }
-
 .comment-content {
   color: var(--text-secondary);
   line-height: 1.6;
-  font-size: 15px;
-  margin-bottom: 16px;
+  font-size: var(--text-sm);
+  margin-bottom: var(--spacing-2);
   word-break: break-all;
 }
-
 .comment-footer {
   display: flex;
-  gap: 20px;
+  gap: var(--spacing-3);
 }
-
 .reply-input {
-  margin-top: 20px;
-  padding: 20px;
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-3);
   background: var(--bg-page);
   border-radius: var(--radius-md);
 }
-
 .reply-action {
-  margin-top: 12px;
+  margin-top: var(--spacing-2);
   text-align: right;
 }
-
 .reply-list {
-  margin-top: 20px;
-  padding-left: 24px;
+  margin-top: var(--spacing-3);
+  padding-left: var(--spacing-3);
   border-left: 3px solid var(--border-color);
 }
-
 .reply-item {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-3);
 }
-
 .reply-item:last-child {
   margin-bottom: 0;
 }
-
 .reply-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-1);
 }
-
 .reply-user {
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--text-xs);
   color: var(--text-primary);
 }
-
 .reply-time {
   color: var(--text-tertiary);
   font-size: 12px;
 }
-
 .reply-content {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--text-xs);
   line-height: 1.6;
 }
-
 .pagination-container {
-  margin-top: 40px;
+  margin-top: calc(var(--spacing-unit) * 5);
   display: flex;
   justify-content: center;
 }
-
-/* Responsive adjustments */
 @media (max-width: 1024px) {
   .project-header {
     flex-direction: column;
-    gap: 32px;
+    gap: var(--spacing-4);
   }
   .media-section {
     flex: none;
@@ -999,17 +1089,16 @@ onBeforeUnmount(() => {
     height: 360px;
   }
 }
-
 @media (max-width: 768px) {
   .main-content {
-    margin: 20px auto;
-    padding: 0 16px;
+    margin: var(--spacing-3) auto;
+    padding: 0 var(--spacing-2);
   }
   .project-header {
-    padding: 24px;
+    padding: var(--spacing-3);
   }
   .title {
-    font-size: 28px;
+    font-size: var(--text-xl);
   }
   .main-media {
     height: 240px;
@@ -1018,14 +1107,14 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
   .project-content {
-    padding: 24px;
+    padding: var(--spacing-3);
   }
   .funding-progress-section {
-    padding: 24px;
-    margin-bottom: 24px;
+    padding: var(--spacing-3);
+    margin-bottom: var(--spacing-3);
   }
   .funding-progress-section .section-header h2 {
-    font-size: 22px;
+    font-size: var(--text-lg);
   }
   .funding-chart-container {
     height: 250px;

@@ -7,16 +7,44 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fundtogether.dto.ProjectCreateDTO;
 import com.fundtogether.dto.ProjectUpdateDTO;
 import com.fundtogether.entity.Project;
+import com.fundtogether.entity.SysUser;
 import com.fundtogether.mapper.ProjectMapper;
 import com.fundtogether.service.ProjectService;
+import com.fundtogether.service.SysUserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> implements ProjectService {
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private SysUserService sysUserService;
+
+    private void fillSponsorInfo(List<Project> projects) {
+        if (projects == null || projects.isEmpty()) return;
+        Set<Long> sponsorIds = projects.stream()
+                .map(Project::getSponsorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (sponsorIds.isEmpty()) return;
+        Map<Long, SysUser> userMap = sysUserService.listByIds(sponsorIds)
+                .stream().collect(Collectors.toMap(SysUser::getId, u -> u));
+        for (Project p : projects) {
+            SysUser sponsor = userMap.get(p.getSponsorId());
+            if (sponsor != null) {
+                p.setSponsorName(sponsor.getNickname());
+                p.setSponsorAvatar(sponsor.getAvatar());
+            }
+        }
+    }
 
     @Override
     public IPage<Project> getOnlineProjects(Integer current, Integer size, Long categoryId, Double minAmount, Double maxAmount, Double minProgress, Double maxProgress, String keyword, Integer sortType) {
@@ -62,15 +90,18 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
             wrapper.apply("current_amount / target_amount * 100 <= {0}", maxProgress);
         }
         
-        return this.page(page, wrapper);
+        IPage<Project> result = this.page(page, wrapper);
+        fillSponsorInfo(result.getRecords());
+        return result;
     }
 
     @Override
     public Project getProjectDetail(Long id) {
         Project project = this.getById(id);
-        if (project == null || project.getStatus() == 4) { // 4为已下架
+        if (project == null || project.getStatus() == 4) {
             throw new RuntimeException("项目不存在或已下架");
         }
+        fillSponsorInfo(List.of(project));
         return project;
     }
 

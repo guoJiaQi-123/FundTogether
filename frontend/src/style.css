@@ -1,57 +1,95 @@
 @import 'element-plus/dist/index.css';
 
 :root {
-  /* --- TYPOGRAPHY --- */
-  --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
-  --font-body: 'Manrope', system-ui, -apple-system, sans-serif;
+  --primary: hsl(225, 68%, 58%);
+  --primary-hover: hsl(225, 68%, 48%);
+  --primary-light: hsl(225, 68%, 95%);
+  --primary-dark: hsl(225, 68%, 38%);
 
-  /* --- COLORS --- */
-  --bg-page: #F8FAFC;
+  --secondary-1: hsl(200, 40%, 55%);
+  --secondary-2: hsl(280, 35%, 60%);
+  --secondary-3: hsl(160, 40%, 50%);
+
+  --gray-50: hsl(220, 14%, 98%);
+  --gray-100: hsl(220, 14%, 96%);
+  --gray-200: hsl(220, 14%, 83%);
+  --gray-300: hsl(220, 14%, 68%);
+  --gray-400: hsl(220, 14%, 53%);
+  --gray-500: hsl(220, 14%, 38%);
+  --gray-600: hsl(220, 14%, 23%);
+  --gray-700: hsl(220, 14%, 15%);
+  --gray-800: hsl(220, 14%, 8%);
+
+  --bg-page: var(--gray-50);
   --bg-surface: #FFFFFF;
   --bg-surface-elevated: #FFFFFF;
-  
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-tertiary: #94A3B8;
 
-  --color-primary: #4F46E5;
-  --color-primary-hover: #4338CA;
-  --color-primary-light: #EEF2FF;
-  
-  --color-accent: #10B981;
-  --color-accent-light: #D1FAE5;
+  --text-primary: var(--gray-700);
+  --text-secondary: var(--gray-500);
+  --text-tertiary: var(--gray-300);
 
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-  --color-success: #10B981;
-  --color-info: #64748B;
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-accent: hsl(160, 55%, 42%);
+  --color-accent-light: hsl(160, 55%, 94%);
+  --color-warning: hsl(38, 92%, 50%);
+  --color-danger: hsl(0, 72%, 51%);
+  --color-success: hsl(160, 55%, 42%);
+  --color-info: var(--gray-400);
 
-  --border-color: #E2E8F0;
-  --border-light: #F1F5F9;
+  --border-color: var(--gray-200);
+  --border-light: var(--gray-100);
 
-  /* --- SPACING & BORDER RADIUS --- */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --font-heading: 'Outfit', 'PingFang SC', system-ui, -apple-system, sans-serif;
+  --font-body: 'Manrope', 'PingFang SC', system-ui, -apple-system, sans-serif;
+
+  --text-xs: 12px;
+  --text-sm: 15px;
+  --text-base: 18px;
+  --text-lg: 22px;
+  --text-xl: 28px;
+  --text-2xl: 35px;
+  --text-3xl: 44px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  --spacing-unit: 8px;
+  --spacing-1: calc(var(--spacing-unit) * 1);
+  --spacing-2: calc(var(--spacing-unit) * 2);
+  --spacing-3: calc(var(--spacing-unit) * 3);
+  --spacing-4: calc(var(--spacing-unit) * 4);
+  --spacing-5: calc(var(--spacing-unit) * 5);
+  --spacing-6: calc(var(--spacing-unit) * 6);
+  --spacing-7: calc(var(--spacing-unit) * 7);
+  --spacing-8: calc(var(--spacing-unit) * 8);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
   --radius-pill: 9999px;
 
-  /* --- SHADOWS --- */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
-  --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.08);
 
-  /* --- ELEMENT PLUS OVERRIDES --- */
-  --el-color-primary: var(--color-primary);
-  --el-color-primary-light-3: var(--color-primary-light);
-  --el-color-primary-light-5: #C7D2FE;
-  --el-color-primary-light-7: #E0E7FF;
-  --el-color-primary-light-8: #EEF2FF;
-  --el-color-primary-light-9: #EEF2FF;
-  --el-color-primary-dark-2: var(--color-primary-hover);
-  
+  --transition-fast: 200ms ease-out;
+  --transition-normal: 200ms ease-out;
+
+  --el-color-primary: var(--primary);
+  --el-color-primary-light-3: hsl(225, 68%, 74%);
+  --el-color-primary-light-5: hsl(225, 68%, 82%);
+  --el-color-primary-light-7: hsl(225, 68%, 89%);
+  --el-color-primary-light-8: hsl(225, 68%, 92%);
+  --el-color-primary-light-9: hsl(225, 68%, 95%);
+  --el-color-primary-dark-2: var(--primary-dark);
+
   --el-color-success: var(--color-success);
   --el-color-warning: var(--color-warning);
   --el-color-danger: var(--color-danger);
@@ -61,33 +99,27 @@
   --el-border-radius-base: var(--radius-sm);
   --el-border-radius-small: 6px;
   --el-border-radius-round: var(--radius-pill);
-  
+
   --el-text-color-primary: var(--text-primary);
   --el-text-color-regular: var(--text-secondary);
   --el-text-color-secondary: var(--text-tertiary);
-  
+
   --el-border-color: var(--border-color);
   --el-border-color-light: var(--border-light);
   --el-fill-color-blank: var(--bg-surface);
-  
+
   --el-box-shadow-light: var(--shadow-md);
   --el-box-shadow: var(--shadow-lg);
-
-  /* Global typography overrides */
-  font-family: var(--font-body);
-  color: var(--text-primary);
-  background-color: var(--bg-page);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg-page);
+  background: var(--bg-page);
   color: var(--text-primary);
   font-family: var(--font-body);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -100,25 +132,28 @@ h1, h2, h3, h4, h5, h6 {
 a {
   color: var(--color-primary);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color var(--transition-fast);
 }
 
 a:hover {
   color: var(--color-primary-hover);
 }
 
-/* Custom Element Plus Overrides for Aesthetic */
 .el-button {
   font-family: var(--font-body);
   font-weight: 600;
   letter-spacing: 0.01em;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-sm);
 }
+
 .el-button--primary {
-  box-shadow: 0 4px 14px -2px rgba(79, 70, 229, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background-color: var(--primary);
 }
+
 .el-button--primary:hover {
-  box-shadow: 0 6px 20px -2px rgba(79, 70, 229, 0.5);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
   transform: translateY(-1px);
 }
 
@@ -126,23 +161,24 @@ a:hover {
   border: none !important;
   border-radius: var(--radius-lg) !important;
   box-shadow: var(--shadow-md) !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-fast);
   background: var(--bg-surface);
 }
+
 .el-card.is-hover-shadow:hover {
   box-shadow: var(--shadow-xl) !important;
-  transform: translateY(-4px);
+  transform: translateY(-2px);
 }
 
 .el-input__wrapper {
   border-radius: var(--radius-sm) !important;
   box-shadow: 0 0 0 1px var(--border-color) inset !important;
 }
+
 .el-input__wrapper.is-focus {
   box-shadow: 0 0 0 2px var(--color-primary) inset !important;
 }
 
-/* Base App Layout Constraints */
 #app {
   width: 100vw;
   min-height: 100vh;

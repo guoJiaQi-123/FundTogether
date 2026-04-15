@@ -1,6 +1,7 @@
 package com.fundtogether.config;
 
 import com.fundtogether.common.Result;
+import com.fundtogether.common.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -43,6 +44,12 @@ public class GlobalExceptionHandler {
     public Result<?> handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("业务参数异常: {}", e.getMessage());
         return Result.error(400, e.getMessage());
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public Result<?> handleBusinessException(BusinessException e) {
+        log.warn("业务异常: {}", e.getMessage());
+        return Result.error(e.getCode(), e.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)

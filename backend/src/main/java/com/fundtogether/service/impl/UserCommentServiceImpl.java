@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fundtogether.common.enums.UserRole;
 import com.fundtogether.entity.Project;
 import com.fundtogether.entity.SysUser;
 import com.fundtogether.entity.UserComment;
@@ -69,7 +70,7 @@ public class UserCommentServiceImpl extends ServiceImpl<UserCommentMapper, UserC
         // 发起人、管理员、自己可以删除
         if (comment.getUserId().equals(userId) || 
             (project != null && project.getSponsorId().equals(userId)) || 
-            (user != null && user.getRole() == 3)) {
+            (user != null && UserRole.isAdmin(user.getRole()))) {
             comment.setStatus(0);
             this.updateById(comment);
         } else {

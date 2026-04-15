@@ -10,6 +10,12 @@
             </el-button>
             <span class="title">用户主页</span>
           </div>
+          <FollowButton
+            v-if="profile"
+            :user-id="userId"
+            :initial-following="followStatus.isFollowing"
+            @follow-changed="onFollowChanged"
+          />
         </div>
       </template>
 
@@ -26,6 +32,17 @@
               </el-tag>
             </div>
             <div class="bio">{{ profile?.bio || '这个人很懒，什么都没留下...' }}</div>
+            <div class="follow-stats">
+              <span class="stat-item" @click="openFollowList('following')">
+                <span class="stat-count">{{ followingCount }}</span>
+                <span class="stat-label">关注</span>
+              </span>
+              <span class="stat-divider">|</span>
+              <span class="stat-item" @click="openFollowList('followers')">
+                <span class="stat-count">{{ followerCount }}</span>
+                <span class="stat-label">粉丝</span>
+              </span>
+            </div>
             <div class="meta-tags">
               <el-tag v-if="profile?.profession" size="small" effect="plain" type="info">{{ profile.profession }}</el-tag>
               <el-tag v-if="profile?.company" size="small" effect="plain" type="info">{{ profile.company }}</el-tag>
@@ -45,6 +62,15 @@
         </el-descriptions>
       </div>
     </el-card>
+
+    <FollowListDialog
+      v-model="showFollowList"
+      :user-id="userId"
+      :following-count="followingCount"
+      :follower-count="followerCount"
+      :initial-tab="followListTab"
+      @counts-changed="onCountsChanged"
+    />
   </div>
 </template>
 
@@ -54,6 +80,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { getPublicUserProfile } from '../api/user'
+import { getFollowStatus } from '../api/follow'
+import FollowButton from '../components/FollowButton.vue'
+import FollowListDialog from '../components/FollowListDialog.vue'
 import defaultAvatar from '../assets/default-avatar.svg'
 
 const route = useRoute()
@@ -62,6 +91,11 @@ const router = useRouter()
 const userId = computed(() => Number(route.params.id))
 const loading = ref(false)
 const profile = ref<any>(null)
+const followStatus = ref<{ isFollowing: boolean }>({ isFollowing: false })
+const followingCount = ref(0)
+const followerCount = ref(0)
+const showFollowList = ref(false)
+const followListTab = ref<'following' | 'followers'>('following')
 
 const avatarSrc = computed(() => profile.value?.avatar || defaultAvatar)
 
@@ -85,11 +119,42 @@ const loadProfile = async () => {
   try {
     const res: any = await getPublicUserProfile(userId.value)
     profile.value = res.data
+    followingCount.value = res.data?.followingCount || 0
+    followerCount.value = res.data?.followerCount || 0
+
+    loadFollowStatus()
   } catch (e) {
     ElMessage.error('获取用户信息失败')
   } finally {
     loading.value = false
   }
+}
+
+const loadFollowStatus = async () => {
+  try {
+    const res: any = await getFollowStatus(userId.value)
+    if (res.code === 200 && res.data) {
+      followStatus.value = { isFollowing: res.data.isFollowing }
+    }
+  } catch (e) {
+    // ignore for non-logged in users
+  }
+}
+
+const onFollowChanged = (data: { isFollowing: boolean; followingCount: number; followerCount: number }) => {
+  followStatus.value = { isFollowing: data.isFollowing }
+  followingCount.value = data.followingCount
+  followerCount.value = data.followerCount
+}
+
+const onCountsChanged = (data: { followingCount: number; followerCount: number }) => {
+  followingCount.value = data.followingCount
+  followerCount.value = data.followerCount
+}
+
+const openFollowList = (tab: 'following' | 'followers') => {
+  followListTab.value = tab
+  showFollowList.value = true
 }
 
 onMounted(() => {
@@ -172,6 +237,45 @@ onMounted(() => {
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.6;
+}
+
+.follow-stats {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-item {
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  transition: color 0.2s;
+}
+
+.stat-item:hover {
+  color: var(--el-color-primary);
+}
+
+.stat-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-item:hover .stat-count {
+  color: var(--el-color-primary);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.stat-divider {
+  color: var(--el-border-color);
+  font-size: 14px;
 }
 
 .meta-tags {

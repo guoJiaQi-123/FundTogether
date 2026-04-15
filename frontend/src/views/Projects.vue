@@ -76,6 +76,12 @@
                 <h3 class="project-title">{{ item.title }}</h3>
                 <p class="project-desc">{{ item.summary }}</p>
                 
+                <div class="sponsor-info" @click.stop="openUserProfile(item.sponsorId)">
+                  <el-avatar :size="24" :src="item.sponsorAvatar || defaultAvatar" class="sponsor-avatar" />
+                  <span class="sponsor-name">{{ item.sponsorName || '未知用户' }}</span>
+                  <span class="sponsor-tag">发起人</span>
+                </div>
+                
                 <div class="progress-container">
                   <el-progress 
                     :percentage="Math.min(100, Math.round((item.currentAmount / item.targetAmount) * 100))" 
@@ -116,6 +122,11 @@
         </div>
       </div>
     </main>
+
+    <UserProfilePreviewDialog
+      v-model="showUserProfile"
+      :user-id="selectedUserId"
+    />
   </div>
 </template>
 
@@ -124,8 +135,19 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import request from '../utils/request'
+import UserProfilePreviewDialog from '../components/UserProfilePreviewDialog.vue'
+import defaultAvatar from '../assets/default-avatar.svg'
 
 const router = useRouter()
+
+const showUserProfile = ref(false)
+const selectedUserId = ref<number | null>(null)
+
+const openUserProfile = (userId: number) => {
+  if (!userId) return
+  selectedUserId.value = userId
+  showUserProfile.value = true
+}
 
 const customColors = [
   { color: '#f56c6c', percentage: 20 },
@@ -221,171 +243,179 @@ onMounted(() => {
 .projects-container {
   min-height: 100vh;
   background-color: var(--bg-page);
-  padding-bottom: 60px;
+  padding-bottom: calc(var(--spacing-unit) * 8);
 }
-
 .main-content {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 40px 32px;
+  padding: calc(var(--spacing-unit) * 5) var(--spacing-4);
 }
-
 .content-layout {
   display: flex;
-  gap: 40px;
+  gap: calc(var(--spacing-unit) * 5);
 }
-
 .project-list-section {
   flex: 1;
   min-width: 0;
 }
-
 .section-header {
-  margin-bottom: 32px;
+  margin-bottom: var(--spacing-4);
 }
-
 .section-header h2 {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 40px;
+  font-size: var(--text-2xl);
   font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.02em;
 }
-
 .filter-card {
   background: var(--bg-surface);
-  padding: 24px;
+  padding: var(--spacing-3);
   border-radius: var(--radius-lg);
-  margin-bottom: 40px;
+  margin-bottom: calc(var(--spacing-unit) * 5);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
 }
-
 .filter-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: var(--spacing-2);
 }
-
 .project-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 32px;
-  margin-bottom: 40px;
+  gap: var(--spacing-4);
+  margin-bottom: calc(var(--spacing-unit) * 5);
 }
-
 .project-card {
   cursor: pointer;
   display: flex;
   flex-direction: column;
   height: 100%;
+  transition: all var(--transition-fast);
 }
-
 .project-image {
   width: 100%;
   height: 240px;
   object-fit: cover;
   border-bottom: 1px solid var(--border-light);
+  transition: transform var(--transition-fast);
 }
-
 .image-wrapper {
   position: relative;
   overflow: hidden;
 }
-
 .status-badge {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #67c23a;
+  background-color: var(--color-success);
   color: white;
   padding: 4px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
   z-index: 10;
 }
-
 .project-info {
-  padding: 24px;
+  padding: var(--spacing-3);
   display: flex;
   flex-direction: column;
   flex: 1;
 }
-
 .project-title {
   font-family: var(--font-heading);
-  font-size: 20px;
-  margin: 0 0 12px 0;
+  font-size: var(--text-base);
+  margin: 0 0 var(--spacing-2) 0;
   color: var(--text-primary);
   line-height: 1.3;
 }
-
 .project-desc {
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.5;
-  margin: 0 0 24px 0;
+  margin: 0 0 var(--spacing-2) 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex: 1;
 }
-
-.progress-container {
-  margin-bottom: 20px;
+.sponsor-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  margin-bottom: var(--spacing-2);
+  cursor: pointer;
+  width: fit-content;
 }
-
+.sponsor-avatar {
+  --el-avatar-bg-color: transparent;
+  flex-shrink: 0;
+}
+.sponsor-info:hover .sponsor-name {
+  color: var(--color-primary);
+}
+.sponsor-name {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+.sponsor-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  line-height: 18px;
+}
+.progress-container {
+  margin-bottom: var(--spacing-3);
+}
 .project-stats {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   border-top: 1px solid var(--border-light);
-  padding-top: 16px;
+  padding-top: var(--spacing-2);
 }
-
 .stat-item {
   display: flex;
   flex-direction: column;
 }
-
 .stat-item:last-child {
   align-items: flex-end;
 }
-
 .stat-value {
   font-family: var(--font-heading);
-  font-size: 18px;
+  font-size: var(--text-base);
   font-weight: 700;
   color: var(--text-primary);
 }
-
 .stat-label {
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--text-tertiary);
   margin-top: 4px;
 }
-
 .pagination {
   display: flex;
   justify-content: center;
-  margin-top: 60px;
+  margin-top: calc(var(--spacing-unit) * 8);
 }
-
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .main-content {
-    padding: 24px 16px;
+    padding: var(--spacing-3) var(--spacing-2);
   }
   .section-header h2 {
-    font-size: 32px;
+    font-size: var(--text-xl);
   }
   .filter-card {
-    padding: 20px;
+    padding: var(--spacing-3);
   }
   .filter-form {
     flex-direction: column;
@@ -402,7 +432,7 @@ onMounted(() => {
   }
   .project-grid {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: var(--spacing-3);
   }
   .project-image {
     height: 200px;

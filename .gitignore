@@ -3,3 +3,12 @@
 .vscode
 .DS_Store
 skills/
+
+backend/target/
+frontend/node_modules/
+frontend/dist/
+
+*.log
+*.class
+
+application-dev.yml
