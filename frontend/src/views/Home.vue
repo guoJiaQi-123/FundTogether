@@ -2,6 +2,13 @@
   <div class="home-container">
     <main class="main-content">
       <div class="hero-section">
+        <div class="hero-deco-line hero-deco-line--h1"></div>
+        <div class="hero-deco-line hero-deco-line--h2"></div>
+        <div class="hero-deco-line hero-deco-line--v1"></div>
+        <div class="hero-deco-line hero-deco-line--v2"></div>
+        <div class="hero-deco-circle hero-deco-circle--1"></div>
+        <div class="hero-deco-circle hero-deco-circle--2"></div>
+        <div class="hero-deco-badge">安全 · 透明 · 可追溯</div>
         <h1 class="hero-title">{{ t('home.heroTitle') }}</h1>
         <p class="hero-subtitle">{{ t('home.heroSubtitle') }}</p>
       </div>
@@ -337,13 +344,110 @@ onMounted(() => {
 .hero-section {
   position: relative;
   text-align: center;
-  padding: calc(var(--spacing-unit) * 12) var(--spacing-4);
-  background: var(--primary);
+  padding: calc(var(--spacing-unit) * 14) var(--spacing-4);
+  background: hsl(220, 15%, 8%);
   color: white;
   border-radius: var(--radius-xl);
   margin: var(--spacing-4);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 1px 1px, hsla(210, 20%, 70%, 0.15) 1px, transparent 0);
+  background-size: 40px 40px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-section::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, hsla(210, 80%, 55%, 0.08) 0%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-deco-line {
+  position: absolute;
+  background: hsla(210, 20%, 70%, 0.06);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-deco-line--h1 {
+  top: 20%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.hero-deco-line--h2 {
+  bottom: 30%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.hero-deco-line--v1 {
+  left: 15%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.hero-deco-line--v2 {
+  right: 15%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.hero-deco-circle {
+  position: absolute;
+  border: 1px solid hsla(210, 20%, 70%, 0.08);
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-deco-circle--1 {
+  width: 300px;
+  height: 300px;
+  top: -80px;
+  right: -60px;
+}
+
+.hero-deco-circle--2 {
+  width: 200px;
+  height: 200px;
+  bottom: -60px;
+  left: -40px;
+}
+
+.hero-deco-badge {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  background: hsla(210, 80%, 55%, 0.12);
+  border: 1px solid hsla(210, 80%, 55%, 0.2);
+  color: hsl(210, 80%, 75%);
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  z-index: 2;
+  backdrop-filter: blur(4px);
 }
 
 .hero-title {
@@ -359,7 +463,7 @@ onMounted(() => {
 
 .hero-subtitle {
   font-size: var(--text-base);
-  color: rgba(255, 255, 255, 0.85);
+  color: hsla(210, 15%, 80%, 0.85);
   margin: 0 auto;
   max-width: 600px;
   line-height: 1.6;

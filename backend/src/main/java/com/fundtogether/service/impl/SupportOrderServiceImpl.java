@@ -40,6 +40,9 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
         implements SupportOrderService {
 
     @Autowired
+    private SupportOrderMapper supportOrderMapper;
+
+    @Autowired
     private ProjectService projectService;
 
     @Autowired
@@ -104,8 +107,10 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
         ledger.setAmount(order.getAmount());
         ledger.setType(LedgerType.USER_PAYMENT.getCode());
         ledger.setStatus(1);
-        SysUser user = sysUserService.getById(userId);
-        String nickname = user != null ? user.getNickname() : "用户";
+        SysUser userAfter = sysUserService.getById(userId);
+        BigDecimal balAfter = userAfter.getBalance() != null ? userAfter.getBalance() : BigDecimal.ZERO;
+        ledger.setBalanceAfter(balAfter);
+        String nickname = userAfter != null ? userAfter.getNickname() : "用户";
         ledger.setRemark(String.format("业务场景: 支持项目[%s], 资金流向: 用户[%s] -> 平台 -> 项目[%s]", project.getTitle(), nickname,
                 project.getTitle()));
         fundingLedgerService.save(ledger);
@@ -114,10 +119,13 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
     }
 
     @Override
-    public IPage<SupportOrder> getMyOrders(Long userId, Integer current, Integer size) {
+    public IPage<SupportOrder> getMyOrders(Long userId, Integer current, Integer size, Integer status) {
         Page<SupportOrder> page = new Page<>(current, size);
         LambdaQueryWrapper<SupportOrder> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SupportOrder::getUserId, userId);
+        if (status != null) {
+            wrapper.eq(SupportOrder::getStatus, status);
+        }
         wrapper.orderByDesc(SupportOrder::getCreatedAt);
 
         IPage<SupportOrder> result = this.page(page, wrapper);
@@ -192,5 +200,15 @@ public class SupportOrderServiceImpl extends ServiceImpl<SupportOrderMapper, Sup
             return projectService.getById(order.getProjectId());
         }
         return null;
+    }
+
+    @Override
+    public List<Map<String, Object>> getUserMonthlyTrend(Long userId) {
+        return supportOrderMapper.getUserMonthlyTrend(userId);
+    }
+
+    @Override
+    public List<Map<String, Object>> getUserProjectDistribution(Long userId) {
+        return supportOrderMapper.getUserProjectDistribution(userId);
     }
 }

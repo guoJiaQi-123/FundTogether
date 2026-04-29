@@ -1,6 +1,6 @@
 CREATE TABLE `funding_ledger` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `project_id` bigint NOT NULL COMMENT '关联项目ID',
+  `project_id` bigint DEFAULT NULL COMMENT '关联项目ID(提现等操作可为空)',
   `order_id` bigint DEFAULT NULL COMMENT '关联订单ID(如果是用户支付/退款)',
   `user_id` bigint NOT NULL COMMENT '交易涉及的用户ID(支持者或发起人)',
   `amount` decimal(10,2) NOT NULL COMMENT '交易金额',

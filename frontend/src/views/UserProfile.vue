@@ -218,56 +218,240 @@
 
           <!-- 我的账户 -->
           <div v-show="activeTab === 'account'" class="tab-content fade-in">
-            <div class="account-card modern-stat-card">
-              <div class="stat-card-bg-decoration"></div>
-              <div class="stat-content">
-                <div class="balance-label">
-                  <el-icon><Wallet /></el-icon>
-                  <span>可用余额</span>
+            <div class="account-card balance-card-modern">
+              <div class="balance-card__bg-pattern"></div>
+              <div class="balance-card__content">
+                <div class="balance-card__header">
+                  <div class="balance-card__icon-wrap">
+                    <el-icon class="balance-card__icon"><Wallet /></el-icon>
+                  </div>
+                  <div class="balance-card__label">可用余额</div>
+                  <div class="balance-card__status">
+                    <span class="balance-card__status-dot"></span>
+                    <span>正常</span>
+                  </div>
                 </div>
-                <div class="balance-amount">
-                  <span class="currency">¥</span>
-                  <span class="amount">{{ balance.toFixed(2) }}</span>
+                <div class="balance-card__amount">
+                  <span class="balance-card__currency">¥</span>
+                  <span class="balance-card__number">{{ balance.toFixed(2) }}</span>
                 </div>
-              </div>
-              <div class="stat-actions">
-                <el-button size="large" @click="showRechargeDialog = true" class="recharge-btn premium-btn">
-                  <el-icon><Money /></el-icon> <span>充值</span>
-                </el-button>
-                <el-button v-if="isSponsorRole" size="large" @click="showWithdrawalDialog = true" class="recharge-btn premium-btn">
-                  <el-icon><Promotion /></el-icon> <span>提现</span>
-                </el-button>
+                <div class="balance-card__actions">
+                  <el-button class="balance-card__btn balance-card__btn--primary" size="large" @click="showRechargeDialog = true">
+                    <el-icon><Money /></el-icon> <span>充值</span>
+                  </el-button>
+                  <el-button v-if="isSponsorRole" class="balance-card__btn balance-card__btn--secondary" size="large" @click="showWithdrawalDialog = true">
+                    <el-icon><Promotion /></el-icon> <span>提现</span>
+                  </el-button>
+                </div>
               </div>
             </div>
 
-            <div v-if="isSponsorRole" class="withdrawal-section">
-              <div class="section-divider">
-                <span class="divider-text">提现记录</span>
+            <div class="record-switch-bar">
+              <div class="record-switch-header">
+                <div class="record-switch-title">资金明细</div>
+                <div class="record-switch-tabs" role="tablist" aria-label="账户明细类型切换">
+                  <button
+                    type="button"
+                    class="record-switch-tab"
+                    :class="{ 'is-active': accountRecordView === 'transactions' }"
+                    @click="switchAccountRecordView('transactions')"
+                  >
+                    全部流水
+                  </button>
+                  <button
+                    type="button"
+                    class="record-switch-tab"
+                    :class="{ 'is-active': accountRecordView === 'recharge' }"
+                    @click="switchAccountRecordView('recharge')"
+                  >
+                    充值明细
+                  </button>
+                  <button
+                    v-if="isSponsorRole"
+                    type="button"
+                    class="record-switch-tab"
+                    :class="{ 'is-active': accountRecordView === 'withdrawal' }"
+                    @click="switchAccountRecordView('withdrawal')"
+                  >
+                    提现明细
+                  </button>
+                </div>
               </div>
-              <el-table :data="withdrawalRecords" v-loading="withdrawalLoading" size="small" class="withdrawal-table">
-                <el-table-column prop="orderNo" label="单号" width="180" />
-                <el-table-column prop="amount" label="金额" width="100">
-                  <template #default="{ row }">
-                    <span class="withdrawal-amount">¥{{ row.amount }}</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="type" label="方式" width="90">
-                  <template #default="{ row }">{{ row.type === 1 ? '支付宝' : '银行卡' }}</template>
-                </el-table-column>
-                <el-table-column prop="status" label="状态" width="90">
-                  <template #default="{ row }">
-                    <el-tag size="small" :type="row.status === 0 ? 'warning' : row.status === 1 ? 'success' : 'danger'">
-                      {{ row.status === 0 ? '待审核' : row.status === 1 ? '已通过' : '已驳回' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="rejectReason" label="驳回原因" show-overflow-tooltip />
-                <el-table-column prop="createdAt" label="申请时间" width="160">
-                  <template #default="{ row }">{{ new Date(row.createdAt).toLocaleString() }}</template>
-                </el-table-column>
-              </el-table>
+              <p class="record-switch-hint">
+                {{ accountRecordView === 'transactions' ? '展示每笔交易后的账户余额变动，让资金流向清晰可溯源。' : accountRecordView === 'recharge' ? '展示账户充值流水与支付状态。' : '展示提现申请进度与审核结果。' }}
+              </p>
+            </div>
+
+            <div v-if="accountRecordView === 'transactions'" class="transactions-section">
+              <div class="tx-filter-bar">
+                <el-select v-model="transactionTypeFilter" placeholder="交易类型" clearable size="small" @change="fetchTransactions" style="width: 140px;">
+                  <el-option label="全部" value="" />
+                  <el-option label="项目支持" :value="1" />
+                  <el-option label="平台退款" :value="2" />
+                  <el-option label="项目拨付" :value="3" />
+                  <el-option label="提现" :value="4" />
+                  <el-option label="充值" :value="5" />
+                </el-select>
+              </div>
+              <div v-loading="transactionLoading">
+                <div v-if="transactions.length === 0 && !transactionLoading" class="tx-empty">
+                  <el-empty description="暂无资金明细" :image-size="80" />
+                </div>
+                <div class="tx-table-wrap" v-else>
+                  <table class="tx-table">
+                    <thead>
+                      <tr>
+                        <th class="col-time">时间</th>
+                        <th class="col-type">类型</th>
+                        <th class="col-desc">描述</th>
+                        <th class="col-amount">金额</th>
+                        <th class="col-balance">余额</th>
+                        <th class="col-status">状态</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="tx in transactions" :key="tx.id" class="tx-row">
+                        <td class="col-time">
+                          <span class="tx-date">{{ formatDate(tx.createdAt) }}</span>
+                          <span class="tx-time">{{ formatTime(tx.createdAt) }}</span>
+                        </td>
+                        <td class="col-type">
+                          <span class="tx-type-badge" :class="getTypeClass(tx.type)">
+                            {{ getTransactionTypeText(tx.type) }}
+                          </span>
+                        </td>
+                        <td class="col-desc">
+                          <span class="tx-desc-main">{{ getTransactionDesc(tx) }}</span>
+                          <span class="tx-desc-project" v-if="tx.projectName" @click="router.push(`/projects/${tx.projectId}`)">{{ tx.projectName }}</span>
+                        </td>
+                        <td class="col-amount">
+                          <span class="tx-amount" :class="{ 'tx-amount-in': isTxIncome(tx.type), 'tx-amount-out': isTxOutcome(tx.type) }">
+                            {{ isTxIncome(tx.type) ? '+' : '-' }}¥{{ formatNumber(tx.amount) }}
+                          </span>
+                        </td>
+                        <td class="col-balance">
+                          <span class="tx-balance">¥{{ formatNumber(tx.balanceAfter) }}</span>
+                        </td>
+                        <td class="col-status">
+                          <el-tag size="small" :type="getTxStatusType(tx.status)" effect="plain">
+                            {{ getTxStatusText(tx.status) }}
+                          </el-tag>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="pagination" v-if="transactionTotal > transactionSize">
+                <el-pagination v-model:current-page="transactionPage" :page-size="transactionSize" layout="total, prev, pager, next" :total="transactionTotal" @current-change="fetchTransactions" small />
+              </div>
+            </div>
+
+            <div v-else-if="accountRecordView === 'recharge'" class="recharge-section">
+              <div v-loading="rechargeLoading">
+                <table class="tx-table">
+                  <thead>
+                    <tr>
+                      <th class="col-time">时间</th>
+                      <th class="col-type">类型</th>
+                      <th class="col-desc">描述</th>
+                      <th class="col-amount">金额</th>
+                      <th class="col-paytime">支付时间</th>
+                      <th class="col-status">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="record in rechargeRecords" :key="record.id" class="tx-row" :class="{ 'tx-row-pending': record.status === 0 }">
+                      <td class="col-time">
+                        <span class="tx-date">{{ formatDate(record.createdAt) }}</span>
+                        <span class="tx-time">{{ formatTime(record.createdAt) }}</span>
+                      </td>
+                      <td class="col-type">
+                        <span class="tx-type-badge type-recharge">
+                          充值
+                        </span>
+                      </td>
+                      <td class="col-desc">
+                        <span class="tx-desc-main">账户充值</span>
+                        <span class="tx-desc-project">{{ record.orderNo }}</span>
+                      </td>
+                      <td class="col-amount">
+                        <span class="tx-amount tx-amount-in">+¥{{ formatNumber(record.amount) }}</span>
+                      </td>
+                      <td class="col-paytime">
+                        <span v-if="record.payTime" class="tx-date">{{ formatDate(record.payTime) }}</span>
+                        <span v-if="record.payTime" class="tx-time">{{ formatTime(record.payTime) }}</span>
+                        <span v-else class="tx-time">-</span>
+                      </td>
+                      <td class="col-status">
+                        <el-tag size="small" :type="record.status === 1 ? 'success' : 'warning'" effect="plain">
+                          {{ record.status === 1 ? '已支付' : '待支付' }}
+                        </el-tag>
+                      </td>
+                    </tr>
+                    <tr v-if="rechargeRecords.length === 0 && !rechargeLoading" class="tx-empty-row">
+                      <td colspan="6">
+                        <el-empty description="暂无充值明细" :image-size="80" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination" v-if="rechargeTotal > 10">
+                <el-pagination v-model:current-page="rechargeCurrent" :page-size="10" layout="total, prev, pager, next" :total="rechargeTotal" @current-change="fetchRechargeRecords" small />
+              </div>
+            </div>
+
+            <div v-else-if="isSponsorRole" class="withdrawal-section">
+              <div v-loading="withdrawalLoading">
+                <table class="tx-table">
+                  <thead>
+                    <tr>
+                      <th class="col-time">时间</th>
+                      <th class="col-type">方式</th>
+                      <th class="col-desc">描述</th>
+                      <th class="col-amount">金额</th>
+                      <th class="col-paytime">驳回原因</th>
+                      <th class="col-status">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="record in withdrawalRecords" :key="record.id" class="tx-row" :class="{ 'tx-row-pending': record.status === 0 }">
+                      <td class="col-time">
+                        <span class="tx-date">{{ formatDate(record.createdAt) }}</span>
+                        <span class="tx-time">{{ formatTime(record.createdAt) }}</span>
+                      </td>
+                      <td class="col-type">
+                        <span class="tx-type-badge type-withdraw">
+                          {{ record.type === 1 ? '支付宝' : '银行卡' }}
+                        </span>
+                      </td>
+                      <td class="col-desc">
+                        <span class="tx-desc-main">申请提现</span>
+                        <span class="tx-desc-project">{{ record.orderNo }}</span>
+                      </td>
+                      <td class="col-amount">
+                        <span class="tx-amount tx-amount-out">-¥{{ formatNumber(record.amount) }}</span>
+                      </td>
+                      <td class="col-paytime">
+                        <span class="tx-time" :class="{ 'tx-desc-danger': record.status === 2 }">{{ record.rejectReason || '-' }}</span>
+                      </td>
+                      <td class="col-status">
+                        <el-tag size="small" :type="record.status === 0 ? 'warning' : record.status === 1 ? 'success' : 'danger'" effect="plain">
+                          {{ record.status === 0 ? '待审核' : record.status === 1 ? '已通过' : '已驳回' }}
+                        </el-tag>
+                      </td>
+                    </tr>
+                    <tr v-if="withdrawalRecords.length === 0 && !withdrawalLoading" class="tx-empty-row">
+                      <td colspan="6">
+                        <el-empty description="暂无提现明细" :image-size="80" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               <div class="pagination" v-if="withdrawalTotal > 10">
-                <el-pagination v-model:current-page="withdrawalCurrent" :page-size="10" layout="prev, pager, next" :total="withdrawalTotal" @current-change="fetchWithdrawalRecords" small />
+                <el-pagination v-model:current-page="withdrawalCurrent" :page-size="10" layout="total, prev, pager, next" :total="withdrawalTotal" @current-change="fetchWithdrawalRecords" small />
               </div>
             </div>
           </div>
@@ -388,19 +572,21 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Camera, User, Postcard, Wallet, Lock, Platform, Money, Promotion } from '@element-plus/icons-vue'
-import { updateProfile, updatePassword, getUserInfo, applyWithdrawal, getMyWithdrawals } from '../api/user'
+import { updateProfile, updatePassword, getUserInfo, applyWithdrawal, getMyWithdrawals, getMyRechargeOrders } from '../api/user'
 import { getFollowStatus } from '../api/follow'
 import FollowListDialog from '../components/FollowListDialog.vue'
 import request from '../utils/request'
 import { useUserStore, isSponsor } from '../store/user'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const uploadUrl = 'http://localhost:8080/api/file/upload'
 const uploadHeaders = {
   Authorization: 'Bearer ' + localStorage.getItem('token')
 }
 
-const activeTab = ref('profile')
+const route = useRoute()
+const STORAGE_KEY_TAB = 'user_profile_active_tab'
+const activeTab = ref((route.query.tab as string) || (localStorage.getItem(STORAGE_KEY_TAB) as string) || 'profile')
 const updating = ref(false)
 const userStore = useUserStore()
 const router = useRouter()
@@ -421,6 +607,7 @@ const currentTabTitle = computed(() => tabTitles[activeTab.value])
 
 const handleSelectMenu = (index: string) => {
   activeTab.value = index
+  localStorage.setItem(STORAGE_KEY_TAB, index)
 }
 
 const profileForm = ref({
@@ -447,6 +634,7 @@ const rechargeAmount = ref(100)
 const rechargeMethod = ref('mock')
 const recharging = ref(false)
 const isSponsorRole = computed(() => isSponsor(userStore.userInfo?.role))
+const accountRecordView = ref<'recharge' | 'withdrawal' | 'transactions'>((localStorage.getItem('user_account_record_view') as any) || 'transactions')
 const showWithdrawalDialog = ref(false)
 const withdrawalSubmitting = ref(false)
 const withdrawalRecords = ref<any[]>([])
@@ -454,18 +642,24 @@ const withdrawalLoading = ref(false)
 const withdrawalCurrent = ref(1)
 const withdrawalTotal = ref(0)
 const withdrawalForm = ref({ amount: 100, type: 1, accountName: '', accountNo: '', bankName: '' })
+const rechargeRecords = ref<any[]>([])
+const rechargeLoading = ref(false)
+const rechargeCurrent = ref(1)
+const rechargeTotal = ref(0)
+
+const transactions = ref<any[]>([])
+const transactionLoading = ref(false)
+const transactionPage = ref(1)
+const transactionSize = ref(15)
+const transactionTotal = ref(0)
+const transactionTypeFilter = ref<number | string>('')
 
 const fetchBalance = async () => {
   try {
     const res: any = await request.get('/user/account')
-    if (res.code === 200) {
-      balance.value = res.data
-    } else {
-      ElMessage.error(res.message || '获取余额失败')
-    }
+    balance.value = Number(res.data) || 0
   } catch (error) {
     console.error('Fetch balance error:', error)
-    ElMessage.error('获取余额失败')
   }
 }
 
@@ -484,7 +678,8 @@ const handleRecharge = async () => {
       if (res.code === 200) {
         ElMessage.success('模拟充值成功')
         showRechargeDialog.value = false
-        fetchBalance() // 刷新余额
+        fetchBalance()
+        fetchRechargeRecords()
       } else {
         ElMessage.error(res.message || '模拟充值失败')
       }
@@ -614,6 +809,13 @@ onMounted(() => {
   loadUserLevel()
   fetchAuthInfo()
   fetchBalance()
+  if (accountRecordView.value === 'transactions') {
+    fetchTransactions()
+  } else if (accountRecordView.value === 'recharge') {
+    fetchRechargeRecords()
+  } else if (isSponsorRole.value) {
+    fetchWithdrawalRecords()
+  }
   loadFollowCounts()
   if (isSponsorRole.value) fetchWithdrawalRecords()
 })
@@ -650,6 +852,118 @@ const fetchWithdrawalRecords = async () => {
     withdrawalTotal.value = res.data.total || 0
   } catch (error) { console.error(error) }
   finally { withdrawalLoading.value = false }
+}
+
+const fetchRechargeRecords = async () => {
+  rechargeLoading.value = true
+  try {
+    const res: any = await getMyRechargeOrders({ current: rechargeCurrent.value, size: 10 })
+    rechargeRecords.value = res.data.records || []
+    rechargeTotal.value = res.data.total || 0
+  } catch (error) { console.error(error) }
+  finally { rechargeLoading.value = false }
+}
+
+const switchAccountRecordView = (view: 'recharge' | 'withdrawal' | 'transactions') => {
+  accountRecordView.value = view
+  localStorage.setItem('user_account_record_view', view)
+
+  if (view === 'transactions') {
+    fetchTransactions()
+  } else if (view === 'recharge') {
+    fetchRechargeRecords()
+  } else if (view === 'withdrawal' && isSponsorRole.value) {
+    fetchWithdrawalRecords()
+  }
+}
+
+const fetchTransactions = async () => {
+  transactionLoading.value = true
+  try {
+    const params: any = { current: transactionPage.value, size: transactionSize.value }
+    if (transactionTypeFilter.value !== '' && transactionTypeFilter.value !== null && transactionTypeFilter.value !== undefined) {
+      params.type = transactionTypeFilter.value
+    }
+    const res: any = await request.get('/user/account/transactions', { params })
+    transactions.value = res.data.records || []
+    transactionTotal.value = res.data.total || 0
+  } catch (error) {
+    console.error('Fetch transactions error:', error)
+  } finally {
+    transactionLoading.value = false
+  }
+}
+
+const formatNumber = (num: any) => {
+  if (num === null || num === undefined) return '0.00'
+  const n = Number(num)
+  return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+const formatDate = (dt: string) => {
+  if (!dt) return ''
+  const d = new Date(dt)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const formatTime = (dt: string) => {
+  if (!dt) return ''
+  const d = new Date(dt)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
+}
+
+const getTransactionTypeText = (type: number) => {
+  switch (type) {
+    case 1: return '项目支持'
+    case 2: return '平台退款'
+    case 3: return '项目拨付'
+    case 4: return '提现'
+    case 5: return '充值'
+    default: return '其他'
+  }
+}
+
+const getTypeClass = (type: number) => {
+  switch (type) {
+    case 1: return 'type-support'
+    case 2: return 'type-refund'
+    case 3: return 'type-payout'
+    case 4: return 'type-withdraw'
+    case 5: return 'type-recharge'
+    default: return 'type-other'
+  }
+}
+
+const isTxIncome = (type: number) => type === 2 || type === 3 || type === 5
+const isTxOutcome = (type: number) => type === 1 || type === 4
+
+const getTxStatusType = (status: number) => {
+  switch (status) {
+    case 1: return 'success'
+    case 0: return 'warning'
+    case 2: return 'danger'
+    default: return 'info'
+  }
+}
+
+const getTxStatusText = (status: number) => {
+  switch (status) {
+    case 1: return '成功'
+    case 0: return '处理中'
+    case 2: return '失败'
+    default: return '未知'
+  }
+}
+
+const getTransactionDesc = (tx: any) => {
+  switch (tx.type) {
+    case 1: return '支持项目'
+    case 2: return '退款到账'
+    case 3: return '项目拨付'
+    case 4: return '申请提现'
+    case 5: return '账户充值'
+    default: return '资金变动'
+  }
 }
 
 const handleWithdrawal = async () => {
@@ -1006,90 +1320,162 @@ const handleUpdatePassword = async () => {
   display: block;
 }
 
-.modern-stat-card {
+.balance-card-modern {
   position: relative;
   overflow: hidden;
-  background: var(--primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
-  padding: var(--spacing-5);
-  color: var(--bg-surface);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.modern-stat-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-xl);
+.balance-card-modern:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
 }
 
-.stat-card-bg-decoration {
-  display: none;
+.balance-card__bg-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(hsla(210, 15%, 70%, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, hsla(210, 15%, 70%, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  z-index: 0;
+  pointer-events: none;
 }
 
-.balance-label {
+.balance-card__content {
+  position: relative;
+  z-index: 1;
+  padding: var(--spacing-5) var(--spacing-6);
+}
+
+.balance-card__header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-1);
-  font-size: var(--text-base);
-  font-weight: var(--font-weight-medium);
-  opacity: 0.9;
-  margin-bottom: var(--spacing-1);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
 }
 
-.balance-label .el-icon {
+.balance-card__icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: hsl(210, 80%, 95%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.balance-card__icon {
   font-size: 20px;
+  color: hsl(210, 80%, 55%);
 }
 
-.balance-amount {
-  color: var(--bg-surface);
-  margin-bottom: 0;
+.balance-card__label {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.balance-card__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--color-success);
+  background: hsl(140, 60%, 95%);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+
+.balance-card__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+  animation: pulse-status 2s ease-in-out infinite;
+}
+
+@keyframes pulse-status {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.balance-card__amount {
   display: flex;
   align-items: baseline;
   gap: 4px;
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-4);
+  background: hsl(220, 15%, 98%);
+  border-radius: var(--radius-lg);
+  border: 1px solid hsl(210, 15%, 92%);
 }
 
-.currency {
+.balance-card__currency {
   font-size: var(--text-xl);
-  font-weight: var(--font-weight-semibold);
-  opacity: 0.9;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 2px;
 }
 
-.amount {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-weight-extrabold);
-  letter-spacing: -2px;
+.balance-card__number {
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
   line-height: 1;
+  font-family: var(--font-heading);
+  font-feature-settings: 'tnum' 1;
 }
 
-.premium-btn {
-  background: rgba(255, 255, 255, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  color: var(--bg-surface) !important;
-  backdrop-filter: blur(10px);
-  transition: all var(--transition-fast) !important;
+.balance-card__actions {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+.balance-card__btn {
+  flex: 1;
+  height: 48px !important;
   border-radius: var(--radius-md) !important;
-  padding: 0 20px !important;
-  height: 46px !important;
   font-size: var(--text-sm) !important;
-  font-weight: var(--font-weight-semibold) !important;
-  min-width: 130px;
+  font-weight: 600 !important;
+  transition: all var(--transition-fast) !important;
 }
 
-.premium-btn:hover {
+.balance-card__btn--primary {
+  background: hsl(210, 80%, 55%) !important;
+  border-color: hsl(210, 80%, 55%) !important;
+  color: white !important;
+}
+
+.balance-card__btn--primary:hover {
+  background: hsl(210, 80%, 48%) !important;
+  border-color: hsl(210, 80%, 48%) !important;
+  box-shadow: 0 4px 12px hsla(210, 80%, 55%, 0.3) !important;
+}
+
+.balance-card__btn--secondary {
   background: var(--bg-surface) !important;
-  color: var(--primary) !important;
-  transform: scale(1.05);
-  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
 }
 
-.premium-btn .el-icon {
+.balance-card__btn--secondary:hover {
+  background: var(--gray-50) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.balance-card__btn .el-icon {
   margin-right: var(--spacing-1);
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .modern-form :deep(.el-input__wrapper),
@@ -1154,6 +1540,60 @@ const handleUpdatePassword = async () => {
 .withdrawal-section {
   margin-top: var(--spacing-4);
 }
+.recharge-section {
+  margin-top: var(--spacing-4);
+}
+.record-switch-bar {
+  margin-top: var(--spacing-4);
+  padding: var(--spacing-3);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+.record-switch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+.record-switch-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.record-switch-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--gray-100);
+}
+.record-switch-tab {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.record-switch-tab:hover {
+  color: var(--text-primary);
+}
+.record-switch-tab.is-active {
+  background: var(--bg-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+.record-switch-hint {
+  margin: var(--spacing-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
 .section-divider {
   display: flex;
   align-items: center;
@@ -1177,10 +1617,256 @@ const handleUpdatePassword = async () => {
   border-radius: var(--radius-md);
   overflow: hidden;
 }
+.recharge-table {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.recharge-amount {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-success);
+}
 .withdrawal-amount {
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
 }
+
+.transactions-section {
+  margin-top: var(--spacing-4);
+}
+
+.tx-filter-bar {
+  margin-bottom: var(--spacing-3);
+}
+
+.tx-empty {
+  padding: var(--spacing-6) 0;
+}
+
+.tx-table-wrap {
+  overflow-x: auto;
+}
+
+.tx-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-sm);
+}
+
+.tx-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.tx-table th {
+  background: var(--gray-50);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--spacing-3);
+  text-align: left;
+  border-bottom: 2px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.tx-table th:first-child {
+  border-radius: var(--radius-md) 0 0 0;
+}
+
+.tx-table th:last-child {
+  border-radius: 0 var(--radius-md) 0 0;
+}
+
+.tx-row {
+  transition: background var(--transition-fast);
+}
+
+.tx-row:hover {
+  background: var(--gray-50);
+}
+
+.tx-row td {
+  padding: var(--spacing-3);
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.col-time {
+  width: 130px;
+  white-space: nowrap;
+}
+
+.tx-date {
+  display: block;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+.tx-time {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  margin-top: 2px;
+}
+
+.col-type {
+  width: 100px;
+}
+
+.tx-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.type-support {
+  background: hsl(220, 100%, 95%);
+  color: hsl(220, 80%, 45%);
+}
+
+.type-refund {
+  background: hsl(160, 100%, 95%);
+  color: hsl(160, 80%, 35%);
+}
+
+.type-payout {
+  background: hsl(38, 100%, 95%);
+  color: hsl(38, 90%, 40%);
+}
+
+.type-withdraw {
+  background: hsl(280, 100%, 95%);
+  color: hsl(280, 70%, 45%);
+}
+
+.type-recharge {
+  background: hsl(145, 100%, 95%);
+  color: hsl(145, 80%, 35%);
+}
+
+.type-other {
+  background: var(--gray-100);
+  color: var(--text-secondary);
+}
+
+.col-desc {
+  min-width: 120px;
+}
+
+.tx-desc-main {
+  display: block;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tx-desc-project {
+  display: block;
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.tx-desc-project:hover {
+  text-decoration: underline;
+}
+
+.col-amount {
+  width: 110px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tx-amount {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: var(--text-base);
+  letter-spacing: -0.01em;
+}
+
+.tx-amount-in {
+  color: var(--color-success);
+}
+
+.tx-amount-out {
+  color: var(--color-danger);
+}
+
+.col-balance {
+  width: 110px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tx-balance {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  background: var(--gray-50);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.col-status {
+  width: 80px;
+  text-align: center;
+}
+
+.tx-row-pending {
+  background: hsl(45, 100%, 95%) !important;
+}
+
+.tx-row-pending:hover {
+  background: hsl(45, 100%, 90%) !important;
+}
+
+.tx-row-pending .tx-amount {
+  color: var(--color-warning);
+}
+
+.tx-empty-row td {
+  padding: var(--spacing-6) var(--spacing-3);
+  background: transparent !important;
+  border-bottom: none;
+}
+
+.tx-desc-danger {
+  color: var(--color-danger);
+}
+
+.transactions-section,
+.recharge-section,
+.withdrawal-section {
+  min-height: 400px;
+}
+
+.tx-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.tx-table .col-time { width: 130px; }
+.tx-table .col-type { width: 90px; }
+.tx-table .col-desc { min-width: 120px; }
+.tx-table .col-amount { width: 110px; }
+.tx-table .col-balance { width: 110px; }
+.tx-table .col-status { width: 80px; }
+.tx-table .col-paytime { width: 140px; }
 
 @media (max-width: 1024px) {
   .content-layout {
@@ -1193,6 +1879,16 @@ const handleUpdatePassword = async () => {
     flex-direction: column;
     align-items: flex-start;
     gap: 20px;
+  }
+  .record-switch-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .record-switch-tabs {
+    width: 100%;
+  }
+  .record-switch-tab {
+    flex: 1;
   }
   .stat-actions {
     width: 100%;

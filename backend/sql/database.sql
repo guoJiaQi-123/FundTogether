@@ -126,11 +126,11 @@ DROP TABLE IF EXISTS `funding_ledger`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `funding_ledger` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `project_id` bigint NOT NULL COMMENT '关联项目ID',
+  `project_id` bigint DEFAULT NULL COMMENT '关联项目ID(提现等操作可为空)',
   `order_id` bigint DEFAULT NULL COMMENT '关联订单ID(如果是用户支付/退款)',
   `user_id` bigint NOT NULL COMMENT '交易涉及的用户ID(支持者或发起人)',
   `amount` decimal(10,2) NOT NULL COMMENT '交易金额',
-  `type` tinyint NOT NULL COMMENT '交易类型: 1-用户支付, 2-平台退款, 3-阶段拨付给发起人',
+  `type` tinyint NOT NULL COMMENT '交易类型: 1-用户支付, 2-平台退款, 3-阶段拨付给发起人, 4-发起人提现',
   `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态: 0-处理中, 1-成功, 2-失败',
   `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注/交易流水号',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

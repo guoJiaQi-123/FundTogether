@@ -2,6 +2,26 @@
   <div class="detail-container">
     <main class="main-content" v-loading="loading" v-if="project">
       <div class="project-header">
+        <div class="header-chips">
+          <button 
+            class="header-chip"
+            :class="{ 'is-favorited': isFavorited }"
+            @click="toggleFavorite"
+          >
+            <el-icon :size="14">
+              <StarFilled v-if="isFavorited" />
+              <Star v-else />
+            </el-icon>
+            <span>{{ isFavorited ? '已收藏' : '收藏' }}</span>
+          </button>
+          <button 
+            class="header-chip action-chip--report"
+            @click="showReportDialog = true"
+          >
+            <el-icon :size="14"><Warning /></el-icon>
+            <span>举报</span>
+          </button>
+        </div>
         <div class="media-section">
           <video v-if="project.videoUrl" :src="project.videoUrl" controls class="main-media"></video>
           <img v-else :src="project.coverImage" class="main-media" />
@@ -71,23 +91,6 @@
             >
               {{ project.status === 1 ? '立即支持' : '不在筹款中' }}
             </el-button>
-            <div class="action-extra">
-              <el-button 
-                :type="isFavorited ? 'warning' : 'default'" 
-                @click="toggleFavorite"
-                :icon="isFavorited ? 'StarFilled' : 'Star'"
-              >
-                {{ isFavorited ? '已收藏' : '收藏' }}
-              </el-button>
-              <el-button 
-                type="danger" 
-                plain 
-                @click="showReportDialog = true"
-                :icon="'Warning'"
-              >
-                举报
-              </el-button>
-            </div>
           </div>
         </div>
       </div>
@@ -272,7 +275,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Star, ChatDotRound, Calendar, ArrowRight } from '@element-plus/icons-vue'
+import { Star, StarFilled, ChatDotRound, Calendar, ArrowRight, Warning } from '@element-plus/icons-vue'
 import { useUserStore } from '../store/user'
 import { addFavorite, removeFavorite, checkFavorite, submitReport as submitReportApi } from '../api/user'
 import UserProfilePreviewDialog from '../components/UserProfilePreviewDialog.vue'
@@ -643,7 +646,7 @@ const submitSupport = async () => {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        router.push('/user/account')
+        router.push('/user/profile?tab=account')
       }).catch(() => {})
     } else {
       console.error(error)
@@ -808,7 +811,9 @@ onBeforeUnmount(() => {
   padding: 0 var(--spacing-4);
 }
 .project-header {
+  position: relative;
   display: flex;
+  align-items: center;
   gap: calc(var(--spacing-unit) * 6);
   background: var(--bg-surface);
   padding: calc(var(--spacing-unit) * 5);
@@ -957,13 +962,50 @@ onBeforeUnmount(() => {
   letter-spacing: 0.02em;
   transition: all var(--transition-fast);
 }
-.action-extra {
+.header-chips {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
   display: flex;
-  gap: var(--spacing-2);
-  margin-top: var(--spacing-2);
+  gap: 8px;
 }
-.action-extra .el-button {
-  flex: 1;
+.header-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.header-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: hsl(225, 68%, 97%);
+}
+.header-chip.is-favorited {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  background: hsl(38, 92%, 97%);
+}
+.header-chip.is-favorited:hover {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  background: hsl(38, 92%, 94%);
+}
+.header-chip.action-chip--report:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: hsl(0, 72%, 97%);
 }
 .project-content {
   background: var(--bg-surface);
@@ -1079,6 +1121,7 @@ onBeforeUnmount(() => {
 @media (max-width: 1024px) {
   .project-header {
     flex-direction: column;
+    align-items: stretch;
     gap: var(--spacing-4);
   }
   .media-section {

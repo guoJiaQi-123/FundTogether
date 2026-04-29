@@ -5,11 +5,14 @@ import com.alipay.api.AlipayClient;
 import com.alipay.api.internal.util.AlipaySignature;
 import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fundtogether.common.enums.LedgerType;
 import com.fundtogether.config.AlipayConfig;
+import com.fundtogether.entity.FundingLedger;
 import com.fundtogether.entity.SysUser;
 import com.fundtogether.entity.UserRechargeOrder;
 import com.fundtogether.mapper.SysUserMapper;
 import com.fundtogether.mapper.UserRechargeOrderMapper;
+import com.fundtogether.service.FundingLedgerService;
 import com.fundtogether.service.UserRechargeOrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +33,9 @@ public class UserRechargeOrderServiceImpl extends ServiceImpl<UserRechargeOrderM
 
     @Autowired
     private SysUserMapper sysUserMapper;
+
+    @Autowired
+    private FundingLedgerService fundingLedgerService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -104,6 +110,16 @@ public class UserRechargeOrderServiceImpl extends ServiceImpl<UserRechargeOrderM
                 }
                 user.setBalance(user.getBalance().add(order.getAmount()));
                 sysUserMapper.updateById(user);
+
+                FundingLedger ledger = new FundingLedger();
+                ledger.setUserId(user.getId());
+                ledger.setOrderId(order.getId());
+                ledger.setAmount(order.getAmount());
+                ledger.setType(LedgerType.USER_RECHARGE.getCode());
+                ledger.setStatus(1);
+                ledger.setBalanceAfter(user.getBalance());
+                ledger.setRemark(String.format("业务场景: 用户充值, 资金流向: 支付宝 -> 用户[%s]账户", user.getNickname()));
+                fundingLedgerService.save(ledger);
             }
         }
         return "success";
@@ -151,6 +167,16 @@ public class UserRechargeOrderServiceImpl extends ServiceImpl<UserRechargeOrderM
             }
             user.setBalance(user.getBalance().add(order.getAmount()));
             sysUserMapper.updateById(user);
+
+            FundingLedger ledger = new FundingLedger();
+            ledger.setUserId(user.getId());
+            ledger.setOrderId(order.getId());
+            ledger.setAmount(order.getAmount());
+            ledger.setType(LedgerType.USER_RECHARGE.getCode());
+            ledger.setStatus(1);
+            ledger.setBalanceAfter(user.getBalance());
+            ledger.setRemark(String.format("业务场景: 用户充值, 资金流向: 支付宝 -> 用户[%s]账户", user.getNickname()));
+            fundingLedgerService.save(ledger);
         }
         
         return "success";

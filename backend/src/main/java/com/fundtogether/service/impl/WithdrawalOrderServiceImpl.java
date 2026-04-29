@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fundtogether.common.enums.LedgerType;
 import com.fundtogether.common.exception.BusinessException;
 import com.fundtogether.entity.FundingLedger;
 import com.fundtogether.entity.SysUser;
@@ -114,10 +115,11 @@ public class WithdrawalOrderServiceImpl extends ServiceImpl<WithdrawalOrderMappe
         FundingLedger ledger = new FundingLedger();
         ledger.setUserId(order.getUserId());
         ledger.setAmount(order.getAmount());
-        ledger.setType(4);
+        ledger.setType(LedgerType.SPONSOR_WITHDRAWAL.getCode());
         ledger.setStatus(1);
-        SysUser user = sysUserService.getById(order.getUserId());
-        String userName = user != null ? user.getNickname() : "未知用户";
+        SysUser userAfterApprove = sysUserService.getById(order.getUserId());
+        ledger.setBalanceAfter(userAfterApprove.getBalance() != null ? userAfterApprove.getBalance() : BigDecimal.ZERO);
+        String userName = userAfterApprove != null ? userAfterApprove.getNickname() : "未知用户";
         ledger.setRemark(String.format("业务场景: 管理员审批提现通过, 资金流向: 平台 -> 发起人[%s] -> %s账户[%s]",
                 userName, order.getType() == 1 ? "支付宝" : "银行卡", order.getAccountNo()));
         fundingLedgerService.save(ledger);
